@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Generador de documentos Word a partir de imágenes para impresión">
+    <meta name="theme-color" content="#3b82f6">
+    <title>Generador de Documentos - Print Shop</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📄</text></svg>">
+
+    <!-- TailwindCSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            200: '#bfdbfe',
+                            300: '#93c5fd',
+                            400: '#60a5fa',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                        }
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.3s ease-out',
+                        'slide-up': 'slideUp 0.3s ease-out',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+        <div class="max-w-5xl mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <span class="text-3xl" aria-hidden="true">📄</span>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-800">
+                            Generador de Documentos
+                        </h1>
+                        <p class="text-sm text-gray-500">
+                            Arrastra tus imágenes y genera documentos Word
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <!-- Server Status Indicator -->
+                    <div
+                        id="server-status"
+                        class="w-2 h-2 rounded-full bg-gray-300 transition-colors"
+                        title="Verificando conexión..."
+                    ></div>
+                    <!-- Options Button -->
+                    <button
+                        id="btn-options"
+                        class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                        title="Opciones avanzadas"
+                        aria-label="Abrir opciones avanzadas"
+                    >
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
+                            </path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z">
+                            </path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-5xl mx-auto px-4 py-6 flex-1 w-full">
+        <!-- Notifications Container -->
+        <div
+            id="notifications"
+            class="fixed top-20 right-4 z-50 space-y-2"
+            role="alert"
+            aria-live="polite"
+        ></div>
+
+        <!-- Dropzone Section -->
+        <section id="dropzone-section" class="mb-6">
+            <div
+                id="dropzone"
+                class="dropzone border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer transition-all duration-200 bg-white hover:border-primary-400 hover:bg-primary-50"
+                role="button"
+                tabindex="0"
+                aria-label="Área para arrastrar y soltar imágenes"
+            >
+                <div class="dropzone-content pointer-events-none">
+                    <div class="mb-4">
+                        <svg class="mx-auto h-16 w-16 text-gray-400 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z">
+                            </path>
+                        </svg>
+                    </div>
+                    <p class="text-lg font-medium text-gray-700 mb-1">
+                        Arrastra las imágenes aquí
+                    </p>
+                    <p class="text-sm text-gray-500 mb-4">
+                        o haz clic para seleccionar archivos
+                    </p>
+                    <p class="text-xs text-gray-400">
+                        Formatos: JPG, PNG, WEBP, GIF, BMP (máx. 100 imágenes, 10MB c/u)
+                    </p>
+                    <p class="text-xs text-gray-400 mt-2">
+                        <kbd class="px-1.5 py-0.5 bg-gray-100 rounded text-gray-600">Ctrl</kbd> +
+                        <kbd class="px-1.5 py-0.5 bg-gray-100 rounded text-gray-600">V</kbd>
+                        para pegar imágenes
+                    </p>
+                </div>
+
+                <!-- Hidden file input -->
+                <input
+                    type="file"
+                    id="file-input"
+                    class="hidden"
+                    multiple
+                    accept="image/jpeg,image/png,image/webp,image/gif,image/bmp"
+                    aria-hidden="true"
+                >
+            </div>
+        </section>
+
+        <!-- Images Grid Section -->
+        <section id="images-section" class="mb-6 hidden">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <!-- Header -->
+                <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between bg-gray-50">
+                    <div class="flex items-center gap-2">
+                        <span class="text-lg" aria-hidden="true">🖼️</span>
+                        <span class="font-medium text-gray-700">
+                            Imágenes cargadas:
+                            <span id="image-count" class="text-primary-600 font-bold">0</span>
+                        </span>
+                        <span class="text-xs text-gray-400 ml-2">Arrastra para reordenar</span>
+                    </div>
+                    <button
+                        id="btn-clear"
+                        type="button"
+                        class="px-3 py-1.5 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors flex items-center gap-1"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                            </path>
+                        </svg>
+                        Limpiar todo
+                    </button>
+                </div>
+
+                <!-- Grid Container -->
+                <div
+                    id="images-grid"
+                    class="p-4 grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-2"
+                    role="grid"
+                    aria-label="Imágenes cargadas - arrastra para reordenar"
+                >
+                    <!-- Images will be inserted here by JavaScript -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Options Panel Container (Rendered by OptionsPanel component) -->
+        <section id="options-panel-container" class="mb-6 hidden">
+            <!-- OptionsPanel component will render here -->
+        </section>
+
+        <!-- Layout Preview Container -->
+        <section id="layout-preview-section" class="mb-6 hidden">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-4 py-3 border-b border-gray-200 bg-gray-50">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/>
+                        </svg>
+                        <span class="font-medium text-gray-700">Vista previa del layout</span>
+                    </div>
+                </div>
+                <div id="layout-preview-container" class="p-4">
+                    <!-- LayoutPreview component will render here -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Generate Button Section -->
+        <section id="generate-section" class="mb-6 hidden">
+            <button
+                id="btn-generate"
+                type="button"
+                class="w-full py-4 px-6 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-lg"
+            >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                    </path>
+                </svg>
+                <span id="btn-generate-text">Generar Documento</span>
+            </button>
+            <p class="text-center text-xs text-gray-400 mt-2">
+                <kbd class="px-1.5 py-0.5 bg-gray-100 rounded text-gray-600">Ctrl</kbd> +
+                <kbd class="px-1.5 py-0.5 bg-gray-100 rounded text-gray-600">Enter</kbd>
+                para generar
+            </p>
+        </section>
+
+        <!-- Result Section -->
+        <section id="result-section" class="mb-6 hidden">
+            <div class="bg-green-50 border border-green-200 rounded-xl p-6">
+                <div class="flex items-start gap-4">
+                    <div class="flex-shrink-0">
+                        <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z">
+                            </path>
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <h2 class="text-lg font-semibold text-green-800 mb-1">
+                            Documento generado exitosamente
+                        </h2>
+                        <p class="text-green-700 mb-4">
+                            <span id="result-filename" class="font-medium">documento.docx</span>
+                            (<span id="result-pages">0</span> páginas, <span id="result-size">0 KB</span>)
+                        </p>
+                        <div class="flex flex-wrap gap-3">
+                            <a
+                                id="btn-download"
+                                href="#"
+                                download
+                                class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors"
+                            >
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4">
+                                    </path>
+                                </svg>
+                                Descargar documento
+                            </a>
+                            <button
+                                id="btn-new"
+                                type="button"
+                                class="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 font-medium rounded-lg border border-gray-300 transition-colors"
+                            >
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 4v16m8-8H4">
+                                    </path>
+                                </svg>
+                                Nuevo documento
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- History Panel Section -->
+        <section id="history-section" class="mb-6">
+            <!-- HistoryPanel component will render here -->
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="py-4 text-center text-sm text-gray-500 border-t border-gray-200 bg-white">
+        <p>
+            Print Shop Generator v2.0.0 |
+            <span class="text-xs">
+                Atajos: <kbd class="px-1 bg-gray-100 rounded">O</kbd> seleccionar,
+                <kbd class="px-1 bg-gray-100 rounded">Esc</kbd> limpiar
+            </span>
+        </p>
+    </footer>
+
+    <!-- Loading Overlay -->
+    <div
+        id="loading-overlay"
+        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="loading-text"
+    >
+        <div class="bg-white rounded-xl p-6 shadow-xl flex flex-col items-center max-w-sm mx-4">
+            <div class="loading-spinner mb-4" aria-hidden="true"></div>
+            <p id="loading-text" class="text-gray-700 font-medium text-center">Procesando...</p>
+        </div>
+    </div>
+
+    <!-- Scripts (ES6 Modules) -->
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>

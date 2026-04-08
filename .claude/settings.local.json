@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(if [ -d \"venv\" ])",
+      "Bash(then echo \"venv exists\")",
+      "Bash(else echo \"venv not found - need to run install\")",
+      "Bash(fi:*)",
+      "Bash(python -m venv:*)",
+      "Bash(source venv/Scripts/activate)",
+      "Bash(pip install:*)",
+      "Bash(pip show:*)",
+      "Bash(then source venv/Scripts/activate)",
+      "Bash(pytest:*)",
+      "Bash(else echo \"venv not found\")",
+      "Bash(timeout 8 python:*)",
+      "Bash(source ../venv/Scripts/activate)",
+      "Bash(timeout 6 python:*)",
+      "Bash(node --check:*)",
+      "Bash(for f in js/app.js js/components/dropzone.js js/components/imageGrid.js js/components/notifications.js js/components/sortableImageGrid.js js/components/optionsPanel.js js/components/historyPanel.js js/components/layoutPreview.js js/services/api.js js/services/storage.js js/utils/constants.js js/utils/helpers.js)",
+      "Bash(do if [ -f \"$f\" ])",
+      "Bash(then echo \"✓ $f\")",
+      "Bash(else echo \"✗ $f \\(FALTA\\)\")",
+      "Bash(done)",
+      "Bash(ls:*)"
+    ]
+  }
+}
