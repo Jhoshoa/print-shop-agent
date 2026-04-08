@@ -1,0 +1,50 @@
+# ============================================
+# Print Shop Generator - Render Blueprint
+# ============================================
+# Este archivo configura el deployment automático en Render.com
+#
+# Docs: https://render.com/docs/blueprint-spec
+#
+# Para deployar:
+#   1. Conectar repositorio en Render Dashboard
+#   2. Render detectará este archivo automáticamente
+#   3. O ir a: Dashboard → New → Blueprint → Seleccionar repo
+#
+# ============================================
+
+services:
+  - type: web
+    name: print-shop-generator
+    runtime: docker
+
+    # Dockerfile configuration
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+
+    # Region (Oregon is usually fastest for Americas)
+    region: oregon
+
+    # Branch to deploy
+    branch: main
+
+    # Instance type (free tier)
+    plan: free
+
+    # Health check endpoint
+    healthCheckPath: /api/health
+
+    # Environment variables
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: 8000
+      - key: LOG_LEVEL
+        value: INFO
+      - key: RELOAD
+        value: false
+
+    # Auto-deploy on push to main
+    autoDeploy: true

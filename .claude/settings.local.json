@@ -33,7 +33,8 @@
       "Bash(docker restart:*)",
       "Bash(docker logs:*)",
       "Bash(docker stop:*)",
-      "Bash(docker rm:*)"
+      "Bash(docker rm:*)",
+      "WebFetch(domain:render.com)"
     ]
   }
 }

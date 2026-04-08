@@ -135,13 +135,46 @@ El script `add-hosts-entry.ps1`:
 - Limpia el cache DNS automáticamente
 - Verifica permisos de administrador
 
-### Docker Hub
+### Publicar en Docker Hub
+
+```powershell
+# Primero hacer login (solo una vez)
+docker login
+
+# Usar el script para build + push con version
+.\scripts\docker-push.ps1 -Version 1.0.0
+
+# O especificar usuario
+.\scripts\docker-push.ps1 -Version 1.0.0 -Usuario tu-usuario
+```
+
+El script `docker-push.ps1`:
+- Construye la imagen con la versión especificada
+- Crea el tag `latest` automáticamente
+- Sube ambos tags a Docker Hub
+
+### Descargar desde Docker Hub
 
 ```bash
-# Descargar y ejecutar desde Docker Hub
+# Descargar y ejecutar
 docker pull <username>/print-shop-generator:latest
 docker run -d -p 80:8000 <username>/print-shop-generator:latest
 ```
+
+### Deploy en Render.com (Cloud)
+
+El proyecto incluye configuración para deploy automático en Render.com:
+
+1. Crear cuenta en [Render.com](https://render.com)
+2. Conectar repositorio de GitHub
+3. Render detectará `render.yaml` automáticamente
+4. Configurar secret en GitHub: `RENDER_DEPLOY_HOOK_URL`
+
+**CI/CD Pipeline:**
+- Push a `main` → Tests → Deploy automático
+- Pull Request → Solo ejecuta tests
+
+Ver documentación completa en [`docs/deploy-render-analisis.md`](docs/deploy-render-analisis.md)
 
 ## Uso
 
@@ -183,10 +216,15 @@ print-shop-agent/
 │   ├── start.bat           # Iniciar servidor (Windows)
 │   ├── test.bat            # Ejecutar tests (Windows)
 │   ├── entrypoint.sh       # Entrypoint Docker (limpieza)
-│   └── add-hosts-entry.ps1 # Configurar DNS local (Admin)
+│   ├── add-hosts-entry.ps1 # Configurar DNS local (Admin)
+│   ├── docker-push.ps1     # Publicar en Docker Hub (Windows)
+│   └── docker-push.sh      # Publicar en Docker Hub (Linux/Mac)
+├── .github/workflows/      # GitHub Actions CI/CD
+│   └── deploy.yml          # Pipeline de tests y deploy
 ├── docs/                   # Documentación adicional
 ├── Dockerfile              # Imagen Docker (backend + frontend)
 ├── docker-compose.yml      # Orquestación de contenedores
+├── render.yaml             # Configuración Render.com
 ├── requirements.txt        # Dependencias de producción
 ├── requirements-dev.txt    # Dependencias de desarrollo
 └── README.md
