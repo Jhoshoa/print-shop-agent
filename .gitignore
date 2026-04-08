@@ -120,6 +120,7 @@ $RECYCLE.BIN/
 secrets/
 .secrets
 credentials.json
+certs/
 
 # ============================================
 # Docs
