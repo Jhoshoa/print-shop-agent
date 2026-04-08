@@ -45,6 +45,19 @@ export const ORIENTATION = {
     LANDSCAPE: 'landscape',
 };
 
+// Alineación de imágenes
+export const IMAGE_ALIGNMENT = {
+    LEFT: 'left',
+    CENTER: 'center',
+    RIGHT: 'right',
+};
+
+// Disposición de imágenes
+export const IMAGE_LAYOUT = {
+    VERTICAL: 'vertical',   // Una imagen por línea (con enters)
+    INLINE: 'inline',       // Múltiples imágenes en línea (con espacios)
+};
+
 // Configuración por defecto
 export const DEFAULT_CONFIG = {
     pageSize: 'carta',
@@ -54,6 +67,8 @@ export const DEFAULT_CONFIG = {
     marginsCm: 1.5,
     borders: false,
     orientation: 'portrait',
+    imageAlignment: 'left',     // left, center, right
+    imageLayout: 'vertical',    // vertical (enters), inline (espacios)
 };
 
 // Tiempos de notificación (ms)

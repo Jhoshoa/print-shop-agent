@@ -58,6 +58,14 @@ class DocumentConfig(BaseModel):
         max_length=100,
         description="Output filename without extension",
     )
+    image_alignment: Literal["left", "center", "right"] = Field(
+        default="left",
+        description="Horizontal alignment of images: left, center, or right",
+    )
+    image_layout: Literal["vertical", "inline"] = Field(
+        default="vertical",
+        description="Image layout: vertical (one per line with line breaks) or inline (side by side)",
+    )
 
     @field_validator("filename")
     @classmethod

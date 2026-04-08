@@ -7,7 +7,7 @@
  * @version 1.0.0
  */
 
-import { PAGE_SIZES, DEFAULT_CONFIG } from '../utils/constants.js';
+import { PAGE_SIZES, DEFAULT_CONFIG, IMAGE_ALIGNMENT, IMAGE_LAYOUT } from '../utils/constants.js';
 import { StorageService } from '../services/storage.js';
 import { debounce } from '../utils/helpers.js';
 
@@ -177,6 +177,35 @@ export class OptionsPanel {
                             </div>
                         </div>
 
+                        <!-- Fila 3: Posicionamiento de imágenes -->
+                        <div>
+                            <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Posicionamiento</h4>
+                            <div class="grid grid-cols-2 gap-4">
+                                <!-- Alineación -->
+                                <div>
+                                    <label for="opt-alignment" class="block text-sm font-medium text-gray-700 mb-1">
+                                        Alineación
+                                    </label>
+                                    <select id="opt-alignment" class="input-field">
+                                        <option value="left">Izquierda</option>
+                                        <option value="center">Centro</option>
+                                        <option value="right">Derecha</option>
+                                    </select>
+                                </div>
+
+                                <!-- Disposición -->
+                                <div>
+                                    <label for="opt-layout" class="block text-sm font-medium text-gray-700 mb-1">
+                                        Disposición
+                                    </label>
+                                    <select id="opt-layout" class="input-field">
+                                        <option value="vertical">Vertical (una por línea)</option>
+                                        <option value="inline">En línea (lado a lado)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Fila 3: Nombre de archivo -->
                         <div>
                             <label for="opt-filename" class="block text-sm font-medium text-gray-700 mb-1">
@@ -273,6 +302,8 @@ export class OptionsPanel {
             spacing: document.getElementById('opt-spacing'),
             borders: document.getElementById('opt-borders'),
             filename: document.getElementById('opt-filename'),
+            alignment: document.getElementById('opt-alignment'),
+            layout: document.getElementById('opt-layout'),
             saveDefaults: document.getElementById('btn-save-defaults'),
             restoreDefaults: document.getElementById('btn-restore-defaults'),
             layoutPreview: document.getElementById('layout-preview'),
@@ -301,7 +332,7 @@ export class OptionsPanel {
             this.callbacks.onChange(this.getConfig());
         }, 150);
 
-        const inputIds = ['pageSize', 'orientation', 'margins', 'imageWidth', 'imagesPerRow', 'spacing', 'borders', 'filename'];
+        const inputIds = ['pageSize', 'orientation', 'margins', 'imageWidth', 'imagesPerRow', 'spacing', 'borders', 'filename', 'alignment', 'layout'];
 
         inputIds.forEach(key => {
             const element = this.elements[key];
@@ -379,6 +410,8 @@ export class OptionsPanel {
         if (this.elements.spacing) this.elements.spacing.value = this.config.spacingCm ?? 0.5;
         if (this.elements.borders) this.elements.borders.checked = this.config.borders ?? false;
         if (this.elements.filename) this.elements.filename.value = this.config.filename || '';
+        if (this.elements.alignment) this.elements.alignment.value = this.config.imageAlignment || 'left';
+        if (this.elements.layout) this.elements.layout.value = this.config.imageLayout || 'vertical';
 
         this.updateSummary();
     }
@@ -396,6 +429,8 @@ export class OptionsPanel {
             spacingCm: parseFloat(this.elements.spacing?.value) || 0.5,
             borders: this.elements.borders?.checked || false,
             filename: this.elements.filename?.value || 'documento',
+            imageAlignment: this.elements.alignment?.value || 'left',
+            imageLayout: this.elements.layout?.value || 'vertical',
         };
     }
 
@@ -406,15 +441,23 @@ export class OptionsPanel {
     getConfig() {
         this.updateConfig();
 
+        // Convertir orientation de portrait/landscape a vertical/horizontal para el API
+        const orientationMap = {
+            'portrait': 'vertical',
+            'landscape': 'horizontal',
+        };
+
         return {
             page_size: this.config.pageSize,
-            orientation: this.config.orientation,
+            page_orientation: orientationMap[this.config.orientation] || 'vertical',
             margins_cm: this.config.marginsCm,
             image_width_cm: this.config.imageWidthCm,
             images_per_row: this.config.imagesPerRow,
             spacing_cm: this.config.spacingCm,
             borders: this.config.borders,
             filename: this.config.filename,
+            image_alignment: this.config.imageAlignment,
+            image_layout: this.config.imageLayout,
         };
     }
 
@@ -461,8 +504,10 @@ export class OptionsPanel {
         const size = this.config.pageSize?.toUpperCase() || 'CARTA';
         const orientation = this.config.orientation === 'landscape' ? 'H' : 'V';
         const width = this.config.imageWidthCm || 10;
+        const alignmentIcons = { 'left': '◀', 'center': '●', 'right': '▶' };
+        const alignIcon = alignmentIcons[this.config.imageAlignment] || '◀';
 
-        this.elements.summary.textContent = `${size} ${orientation} · ${width}cm`;
+        this.elements.summary.textContent = `${size} ${orientation} · ${width}cm · ${alignIcon}`;
     }
 
     /**
@@ -500,9 +545,14 @@ export class OptionsPanel {
         const availableWidth = pageWidth - (margins * 2);
         const imageWidth = this.config.imageWidthCm;
         const spacing = this.config.spacingCm;
+        const alignment = this.config.imageAlignment || 'left';
+        const layout = this.config.imageLayout || 'vertical';
 
         let imagesPerRow;
-        if (this.config.imagesPerRow === 'auto') {
+        if (layout === 'vertical') {
+            // En layout vertical, siempre 1 imagen por fila
+            imagesPerRow = 1;
+        } else if (this.config.imagesPerRow === 'auto') {
             imagesPerRow = Math.max(1, Math.floor((availableWidth + spacing) / (imageWidth + spacing)));
         } else {
             imagesPerRow = parseInt(this.config.imagesPerRow) || 1;
@@ -514,24 +564,56 @@ export class OptionsPanel {
         // Escala para visualización (ajustar al contenedor)
         const scale = 6;
         const previewWidth = pageWidth * scale;
-        const previewHeight = Math.min(pageHeight * scale, 160);
+        const previewHeight = Math.min(pageHeight * scale, 180);
 
-        // Crear preview visual
-        const imageElements = Array(Math.min(displayCount, imagesPerRow * 3))
-            .fill(0)
-            .map((_, i) => `
-                <div class="bg-gray-200 border ${this.config.borders ? 'border-gray-400' : 'border-gray-300'} rounded-sm flex items-center justify-center text-xs text-gray-400"
-                    style="width: ${imageWidth * scale}px; height: ${imageWidth * scale * 0.75}px;">
-                    ${i + 1}
-                </div>
-            `)
-            .join('');
+        // Mapear alineación a justify-content
+        const alignmentMap = {
+            'left': 'flex-start',
+            'center': 'center',
+            'right': 'flex-end',
+        };
+        const justifyContent = alignmentMap[alignment] || 'flex-start';
+
+        // Crear preview visual según layout
+        const maxDisplayImages = layout === 'vertical' ? 4 : Math.min(displayCount, imagesPerRow * 3);
+
+        let imageElements;
+        if (layout === 'vertical') {
+            // Layout vertical: cada imagen en su propia fila
+            imageElements = Array(maxDisplayImages)
+                .fill(0)
+                .map((_, i) => `
+                    <div class="w-full flex" style="justify-content: ${justifyContent};">
+                        <div class="bg-gray-200 border ${this.config.borders ? 'border-gray-400' : 'border-gray-300'} rounded-sm flex items-center justify-center text-xs text-gray-400"
+                            style="width: ${imageWidth * scale}px; height: ${imageWidth * scale * 0.75}px;">
+                            ${i + 1}
+                        </div>
+                    </div>
+                `)
+                .join('');
+        } else {
+            // Layout inline: imágenes lado a lado
+            imageElements = Array(maxDisplayImages)
+                .fill(0)
+                .map((_, i) => `
+                    <div class="bg-gray-200 border ${this.config.borders ? 'border-gray-400' : 'border-gray-300'} rounded-sm flex items-center justify-center text-xs text-gray-400"
+                        style="width: ${imageWidth * scale}px; height: ${imageWidth * scale * 0.75}px;">
+                        ${i + 1}
+                    </div>
+                `)
+                .join('');
+        }
+
+        // Estilos del contenedor según layout
+        const containerStyle = layout === 'vertical'
+            ? `flex-direction: column; gap: ${spacing * scale}px;`
+            : `flex-wrap: wrap; gap: ${spacing * scale}px; justify-content: ${justifyContent};`;
 
         container.innerHTML = `
-            <div class="relative bg-white border border-gray-300 shadow-sm rounded"
+            <div class="relative bg-white border border-gray-300 shadow-sm rounded overflow-hidden"
                 style="width: ${previewWidth}px; height: ${previewHeight}px;">
-                <div class="absolute inset-0 flex flex-wrap content-start"
-                    style="padding: ${margins * scale}px; gap: ${spacing * scale}px;">
+                <div class="absolute inset-0 flex"
+                    style="padding: ${margins * scale}px; ${containerStyle}">
                     ${imageElements}
                 </div>
             </div>
@@ -540,7 +622,12 @@ export class OptionsPanel {
         // Actualizar info
         if (info) {
             const imageLabel = this.imageCount === 1 ? 'imagen' : 'imágenes';
-            info.textContent = `${imagesPerRow} por fila · ~${rows} fila(s) · ${this.imageCount || 0} ${imageLabel}`;
+            const alignmentLabels = { 'left': 'Izq', 'center': 'Centro', 'right': 'Der' };
+            const layoutLabels = { 'vertical': 'Vertical', 'inline': 'En línea' };
+            const alignLabel = alignmentLabels[alignment] || 'Izq';
+            const layoutLabel = layoutLabels[layout] || 'Vertical';
+
+            info.textContent = `${imagesPerRow} por fila · ${alignLabel} · ${layoutLabel} · ${this.imageCount || 0} ${imageLabel}`;
         }
     }
 

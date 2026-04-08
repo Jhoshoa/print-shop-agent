@@ -21,7 +21,9 @@
       "Bash(then echo \"✓ $f\")",
       "Bash(else echo \"✗ $f \\(FALTA\\)\")",
       "Bash(done)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(python:*)",
+      "Bash(curl:*)"
     ]
   }
 }

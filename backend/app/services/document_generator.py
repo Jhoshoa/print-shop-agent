@@ -2,6 +2,7 @@
 Word document generator service.
 
 Creates .docx documents with images arranged according to configuration.
+Supports multiple alignment options (left, center, right) and layouts (vertical, inline).
 """
 
 import math
@@ -10,7 +11,7 @@ from datetime import datetime
 from pathlib import Path
 
 from docx import Document
-from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT
+from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT, WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import parse_xml
 from docx.oxml.ns import nsdecls
@@ -23,6 +24,20 @@ from app.core.exceptions import DocumentGenerationError
 from app.core.logging import logger
 from app.models.requests import DocumentConfig
 from app.services.image_processor import ProcessedImage
+
+# Mapping for paragraph alignment
+ALIGNMENT_MAP = {
+    "left": WD_ALIGN_PARAGRAPH.LEFT,
+    "center": WD_ALIGN_PARAGRAPH.CENTER,
+    "right": WD_ALIGN_PARAGRAPH.RIGHT,
+}
+
+# Mapping for table alignment
+TABLE_ALIGNMENT_MAP = {
+    "left": WD_TABLE_ALIGNMENT.LEFT,
+    "center": WD_TABLE_ALIGNMENT.CENTER,
+    "right": WD_TABLE_ALIGNMENT.RIGHT,
+}
 
 
 @dataclass
@@ -200,6 +215,7 @@ class DocumentGenerator:
         width_cm: float,
         height_cm: float | None,
         add_border: bool,
+        alignment: str = "left",
     ) -> None:
         """
         Insert an image into a table cell.
@@ -210,13 +226,14 @@ class DocumentGenerator:
             width_cm: Width in centimeters
             height_cm: Height in centimeters (None = proportional)
             add_border: Add border to image
+            alignment: Horizontal alignment (left, center, right)
         """
         # Configure cell
         cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
 
         # Get or create paragraph
         paragraph = cell.paragraphs[0] if cell.paragraphs else cell.add_paragraph()
-        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        paragraph.alignment = ALIGNMENT_MAP.get(alignment, WD_ALIGN_PARAGRAPH.LEFT)
 
         # Reset image stream
         image.stream.seek(0)
@@ -257,6 +274,115 @@ class DocumentGenerator:
             "</a:ln>"
         )
         spPr.append(ln)
+
+    def _insert_image_to_paragraph(
+        self,
+        paragraph,
+        image: ProcessedImage,
+        width_cm: float,
+        height_cm: float | None,
+        add_border: bool,
+    ) -> None:
+        """
+        Insert an image into a paragraph.
+
+        Args:
+            paragraph: Document paragraph
+            image: Processed image
+            width_cm: Width in centimeters
+            height_cm: Height in centimeters (None = proportional)
+            add_border: Add border to image
+        """
+        # Reset image stream
+        image.stream.seek(0)
+
+        # Create run and insert image
+        run = paragraph.add_run()
+
+        # Calculate dimensions
+        if height_cm is None:
+            aspect_ratio = image.info.aspect_ratio
+            height_cm = width_cm / aspect_ratio
+
+        # Insert image with dimensions
+        picture = run.add_picture(
+            image.stream, width=Cm(width_cm), height=Cm(height_cm)
+        )
+
+        # Add border if configured
+        if add_border:
+            self._add_picture_border(picture)
+
+    def _generate_vertical_layout(
+        self,
+        doc: Document,
+        images: list[ProcessedImage],
+        config: DocumentConfig,
+    ) -> None:
+        """
+        Generate document with vertical layout (one image per line).
+
+        Args:
+            doc: Word document
+            images: List of processed images
+            config: Document configuration
+        """
+        alignment = ALIGNMENT_MAP.get(config.image_alignment, WD_ALIGN_PARAGRAPH.LEFT)
+
+        for image in images:
+            paragraph = doc.add_paragraph()
+            paragraph.alignment = alignment
+
+            self._insert_image_to_paragraph(
+                paragraph=paragraph,
+                image=image,
+                width_cm=config.image_width_cm,
+                height_cm=config.image_height_cm,
+                add_border=config.borders,
+            )
+
+    def _generate_inline_layout(
+        self,
+        doc: Document,
+        images: list[ProcessedImage],
+        config: DocumentConfig,
+        page_width: float,
+    ) -> None:
+        """
+        Generate document with inline layout (multiple images per line).
+
+        Args:
+            doc: Word document
+            images: List of processed images
+            config: Document configuration
+            page_width: Page width in cm
+        """
+        images_per_row = self._calculate_images_per_row(config, page_width)
+        rows_needed = self._calculate_rows_needed(len(images), images_per_row)
+
+        # Create table for inline layout
+        table = self._create_table(doc, rows_needed, images_per_row)
+
+        # Set table alignment
+        table_alignment = TABLE_ALIGNMENT_MAP.get(
+            config.image_alignment, WD_TABLE_ALIGNMENT.LEFT
+        )
+        table.alignment = table_alignment
+
+        # Insert images
+        for idx, image in enumerate(images):
+            row = idx // images_per_row
+            col = idx % images_per_row
+
+            cell = table.rows[row].cells[col]
+            self._insert_image(
+                cell=cell,
+                image=image,
+                width_cm=config.image_width_cm,
+                height_cm=config.image_height_cm,
+                add_border=config.borders,
+                alignment=config.image_alignment,
+            )
 
     def _estimate_pages(
         self,
@@ -320,50 +446,42 @@ class DocumentGenerator:
         try:
             logger.info(
                 f"Generating document: {len(images)} images, "
-                f"size={config.page_size}, image_width={config.image_width_cm}cm"
+                f"size={config.page_size}, image_width={config.image_width_cm}cm, "
+                f"alignment={config.image_alignment}, layout={config.image_layout}"
             )
 
             # 1. Set up document
             doc, page_width, page_height = self._setup_document(config)
 
-            # 2. Calculate layout
-            images_per_row = self._calculate_images_per_row(config, page_width)
+            # 2. Generate based on layout type
+            if config.image_layout == "vertical":
+                # Vertical layout: one image per line
+                self._generate_vertical_layout(doc, images, config)
+                images_per_row = 1
+            else:
+                # Inline layout: multiple images per row in a table
+                self._generate_inline_layout(doc, images, config, page_width)
+                images_per_row = self._calculate_images_per_row(config, page_width)
+
             rows_needed = self._calculate_rows_needed(len(images), images_per_row)
 
             logger.debug(
-                f"Layout: {images_per_row} images/row, {rows_needed} total rows"
+                f"Layout: {config.image_layout}, {images_per_row} images/row, "
+                f"{rows_needed} total rows, alignment={config.image_alignment}"
             )
 
-            # 3. Create table
-            table = self._create_table(doc, rows_needed, images_per_row)
-
-            # 4. Insert images
-            for idx, image in enumerate(images):
-                row = idx // images_per_row
-                col = idx % images_per_row
-
-                cell = table.rows[row].cells[col]
-
-                self._insert_image(
-                    cell=cell,
-                    image=image,
-                    width_cm=config.image_width_cm,
-                    height_cm=config.image_height_cm,
-                    add_border=config.borders,
-                )
-
-            # 5. Generate filename
+            # 3. Generate filename
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"{config.filename}_{timestamp}.docx"
             output_path = self.output_dir / filename
 
-            # 6. Save document
+            # 4. Save document
             doc.save(str(output_path))
 
-            # 7. Get file size
+            # 5. Get file size
             file_size = output_path.stat().st_size
 
-            # 8. Estimate pages
+            # 6. Estimate pages
             avg_image_height = config.image_width_cm / 1.5  # Typical aspect ratio
             estimated_pages = self._estimate_pages(
                 len(images),
