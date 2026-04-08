@@ -21,7 +21,7 @@ class DocumentConfig(BaseModel):
         description="Page orientation",
     )
     image_width_cm: float = Field(
-        default=10.0,
+        default=9.3,
         ge=1.0,
         le=30.0,
         description="Width of each image in centimeters",
@@ -43,7 +43,7 @@ class DocumentConfig(BaseModel):
         description="Space between images in centimeters",
     )
     margins_cm: float = Field(
-        default=1.5,
+        default=1.27,
         ge=0.5,
         le=5.0,
         description="Page margins in centimeters",
