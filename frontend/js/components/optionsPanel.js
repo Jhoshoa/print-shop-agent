@@ -139,7 +139,7 @@ export class OptionsPanel {
                                         Ancho (cm)
                                     </label>
                                     <input type="number" id="opt-image-width" class="input-field"
-                                        value="9.3" min="1" max="30" step="0.1">
+                                        value="9.1" min="1" max="30" step="0.1">
                                 </div>
 
                                 <!-- Espacio entre imágenes -->
@@ -401,7 +401,7 @@ export class OptionsPanel {
         }
 
         const margins = parseFloat(this.config.marginsCm) || 1.27;
-        const imageWidth = parseFloat(this.config.imageWidthCm) || 9.3;
+        const imageWidth = parseFloat(this.config.imageWidthCm) || 9.1;
         const spacing = parseFloat(this.config.spacingCm) || 0.5;
 
         // Espacio disponible = ancho página - márgenes de ambos lados
@@ -531,7 +531,7 @@ export class OptionsPanel {
         if (this.elements.pageSize) this.elements.pageSize.value = this.config.pageSize || 'carta';
         if (this.elements.orientation) this.elements.orientation.value = this.config.orientation || 'portrait';
         if (this.elements.margins) this.elements.margins.value = this.config.marginsCm ?? 1.27;
-        if (this.elements.imageWidth) this.elements.imageWidth.value = this.config.imageWidthCm ?? 9.3;
+        if (this.elements.imageWidth) this.elements.imageWidth.value = this.config.imageWidthCm ?? 9.1;
         if (this.elements.imagesPerRow) this.elements.imagesPerRow.value = this.config.imagesPerRow || 'auto';
         if (this.elements.spacing) this.elements.spacing.value = this.config.spacingCm ?? 0.5;
         if (this.elements.borders) this.elements.borders.checked = this.config.borders ?? false;
@@ -553,7 +553,7 @@ export class OptionsPanel {
             pageSize: this.elements.pageSize?.value || 'carta',
             orientation: this.elements.orientation?.value || 'portrait',
             marginsCm: parseFloat(this.elements.margins?.value) || 1.27,
-            imageWidthCm: parseFloat(this.elements.imageWidth?.value) || 9.3,
+            imageWidthCm: parseFloat(this.elements.imageWidth?.value) || 9.1,
             imagesPerRow: this.elements.imagesPerRow?.value || 'auto',
             spacingCm: parseFloat(this.elements.spacing?.value) || 0.5,
             borders: this.elements.borders?.checked || false,
@@ -636,7 +636,7 @@ export class OptionsPanel {
 
         const size = this.config.pageSize?.toUpperCase() || 'CARTA';
         const orientation = this.config.orientation === 'landscape' ? 'H' : 'V';
-        const width = this.config.imageWidthCm || 9.3;
+        const width = this.config.imageWidthCm || 9.1;
         const alignmentIcons = { 'left': '◀', 'center': '●', 'right': '▶' };
         const alignIcon = alignmentIcons[this.config.imageAlignment] || '◀';
 

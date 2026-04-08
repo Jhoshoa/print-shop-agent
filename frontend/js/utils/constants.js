@@ -61,7 +61,7 @@ export const IMAGE_LAYOUT = {
 // Configuración por defecto
 export const DEFAULT_CONFIG = {
     pageSize: 'carta',
-    imageWidthCm: 9.3,
+    imageWidthCm: 9.1,
     imagesPerRow: 'auto',
     spacingCm: 0.5,
     marginsCm: 1.27,

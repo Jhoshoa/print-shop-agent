@@ -207,7 +207,7 @@ export class ApiClient {
             config: {
                 page_size: config.page_size || config.pageSize || 'carta',
                 page_orientation: config.page_orientation || config.orientation || 'vertical',
-                image_width_cm: parseFloat(config.image_width_cm || config.imageWidthCm) || 9.3,
+                image_width_cm: parseFloat(config.image_width_cm || config.imageWidthCm) || 9.1,
                 images_per_row: config.images_per_row || config.imagesPerRow || 'auto',
                 spacing_cm: parseFloat(config.spacing_cm || config.spacingCm) || 0.5,
                 margins_cm: parseFloat(config.margins_cm || config.marginsCm) || 1.27,

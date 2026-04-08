@@ -21,7 +21,7 @@ class DocumentConfig(BaseModel):
         description="Page orientation",
     )
     image_width_cm: float = Field(
-        default=9.3,
+        default=9.1,
         ge=1.0,
         le=30.0,
         description="Width of each image in centimeters",
