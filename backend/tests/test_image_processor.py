@@ -2,7 +2,6 @@
 Tests for the image processing service.
 """
 
-import base64
 from io import BytesIO
 
 import pytest

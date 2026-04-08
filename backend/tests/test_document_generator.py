@@ -2,8 +2,6 @@
 Tests for the document generator service.
 """
 
-import pytest
-
 from app.models import DocumentConfig
 from app.services import document_generator, image_processor
 

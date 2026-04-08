@@ -2,9 +2,9 @@
 Health check and system status routes.
 """
 
+import importlib.util
 import platform
 from datetime import datetime
-from pathlib import Path
 
 from fastapi import APIRouter
 
@@ -100,13 +100,9 @@ async def readiness_check() -> dict:
         pass
 
     # Verify critical dependencies
-    try:
-        import docx
-        import PIL
-
-        checks["dependencies_ok"] = True
-    except ImportError:
-        pass
+    docx_available = importlib.util.find_spec("docx") is not None
+    pil_available = importlib.util.find_spec("PIL") is not None
+    checks["dependencies_ok"] = docx_available and pil_available
 
     is_ready = all(checks.values())
 

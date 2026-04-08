@@ -73,9 +73,7 @@ class ImageProcessor:
             if len(image_bytes) > self.max_image_size:
                 size_mb = len(image_bytes) / 1024 / 1024
                 max_mb = self.max_image_size / 1024 / 1024
-                raise InvalidImageError(
-                    f"Image too large: {size_mb:.1f}MB (max: {max_mb:.0f}MB)"
-                )
+                raise InvalidImageError(f"Image too large: {size_mb:.1f}MB (max: {max_mb:.0f}MB)")
 
             return image_bytes
 
@@ -227,9 +225,7 @@ class ImageProcessor:
         new_width = int(image.width * ratio)
         new_height = int(image.height * ratio)
 
-        logger.debug(
-            f"Resizing image: {image.width}x{image.height} -> {new_width}x{new_height}"
-        )
+        logger.debug(f"Resizing image: {image.width}x{image.height} -> {new_width}x{new_height}")
 
         return image.resize((new_width, new_height), Image.Resampling.LANCZOS)
 

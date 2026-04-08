@@ -25,9 +25,7 @@ class Settings(BaseSettings):
     # Application
     app_name: str = Field(default="Print Shop Generator")
     app_version: str = Field(default="1.0.0")
-    app_env: Literal["development", "production", "testing"] = Field(
-        default="development"
-    )
+    app_env: Literal["development", "production", "testing"] = Field(default="development")
 
     # Server
     host: str = Field(default="127.0.0.1")

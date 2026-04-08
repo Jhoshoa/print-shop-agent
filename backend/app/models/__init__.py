@@ -11,6 +11,7 @@ from app.models.responses import (
     HealthResponse,
 )
 
+
 __all__ = [
     # Requests
     "DocumentConfig",

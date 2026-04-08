@@ -13,6 +13,7 @@ import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
 
+
 # Add backend to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 

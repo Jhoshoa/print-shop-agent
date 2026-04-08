@@ -19,6 +19,7 @@ from app.core.exceptions import (
 )
 from app.core.logging import logger, setup_logging
 
+
 __all__ = [
     # Constants
     "PAGE_SIZES",

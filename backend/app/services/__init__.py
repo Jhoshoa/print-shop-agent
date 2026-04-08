@@ -13,6 +13,7 @@ from app.services.image_processor import (
     image_processor,
 )
 
+
 __all__ = [
     # Image Processor
     "ImageProcessor",

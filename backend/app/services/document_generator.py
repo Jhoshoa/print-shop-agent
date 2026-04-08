@@ -15,7 +15,7 @@ from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT, WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import parse_xml
 from docx.oxml.ns import nsdecls
-from docx.shared import Cm, Pt
+from docx.shared import Cm
 from docx.table import Table
 
 from app.config import settings
@@ -24,6 +24,7 @@ from app.core.exceptions import DocumentGenerationError
 from app.core.logging import logger
 from app.models.requests import DocumentConfig
 from app.services.image_processor import ProcessedImage
+
 
 # Mapping for paragraph alignment
 ALIGNMENT_MAP = {
@@ -190,12 +191,12 @@ class DocumentGenerator:
         tbl = table._tbl
         tbl_pr = tbl.tblPr
         if tbl_pr is None:
-            tbl_pr = parse_xml(f'<w:tblPr {nsdecls("w")}/>')
+            tbl_pr = parse_xml(f"<w:tblPr {nsdecls('w')}/>")
             tbl.insert(0, tbl_pr)
 
         # Configure invisible borders
         tbl_borders = parse_xml(
-            f'<w:tblBorders {nsdecls("w")}>'
+            f"<w:tblBorders {nsdecls('w')}>"
             '<w:top w:val="none"/>'
             '<w:left w:val="none"/>'
             '<w:bottom w:val="none"/>'
@@ -248,9 +249,7 @@ class DocumentGenerator:
             height_cm = width_cm / aspect_ratio
 
         # Insert image with dimensions
-        picture = run.add_picture(
-            image.stream, width=Cm(width_cm), height=Cm(height_cm)
-        )
+        picture = run.add_picture(image.stream, width=Cm(width_cm), height=Cm(height_cm))
 
         # Add border if configured
         if add_border:
@@ -305,9 +304,7 @@ class DocumentGenerator:
             height_cm = width_cm / aspect_ratio
 
         # Insert image with dimensions
-        picture = run.add_picture(
-            image.stream, width=Cm(width_cm), height=Cm(height_cm)
-        )
+        picture = run.add_picture(image.stream, width=Cm(width_cm), height=Cm(height_cm))
 
         # Add border if configured
         if add_border:
@@ -364,9 +361,7 @@ class DocumentGenerator:
         table = self._create_table(doc, rows_needed, images_per_row)
 
         # Set table alignment
-        table_alignment = TABLE_ALIGNMENT_MAP.get(
-            config.image_alignment, WD_TABLE_ALIGNMENT.LEFT
-        )
+        table_alignment = TABLE_ALIGNMENT_MAP.get(config.image_alignment, WD_TABLE_ALIGNMENT.LEFT)
         table.alignment = table_alignment
 
         # Insert images

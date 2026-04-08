@@ -34,7 +34,9 @@
       "Bash(docker logs:*)",
       "Bash(docker stop:*)",
       "Bash(docker rm:*)",
-      "WebFetch(domain:render.com)"
+      "WebFetch(domain:render.com)",
+      "Bash(ruff check:*)",
+      "Bash(ruff format:*)"
     ]
   }
 }
