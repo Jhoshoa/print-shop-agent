@@ -40,6 +40,11 @@ Esta herramienta permite:
 
 ## Requisitos del Sistema
 
+### Opción 1: Docker (Recomendado)
+- Docker Desktop
+- 200MB de espacio en disco
+
+### Opción 2: Instalación Local
 - Python 3.10 o superior
 - Navegador web moderno (Chrome, Firefox, Safari, Edge)
 - 100MB de espacio en disco
@@ -89,6 +94,55 @@ python -m uvicorn app.main:app --reload
 
 Abrir en el navegador: **http://localhost:8000**
 
+## Docker
+
+### Ejecutar con Docker Compose
+
+La forma más sencilla de ejecutar la aplicación es usando Docker:
+
+```bash
+# Construir e iniciar los contenedores
+docker-compose up -d
+
+# Ver logs
+docker-compose logs -f
+
+# Detener
+docker-compose down
+
+# Verificar archivos generados en el contenedor
+docker exec print-shop-app sh -c "ls -la /app/backend/output/"
+```
+
+> **Nota:** Al iniciar el contenedor, se borran automáticamente los archivos `.docx` anteriores de la carpeta output.
+
+Acceder en: **http://localhost** (puerto 80)
+
+### Configurar Dominio Local (Opcional)
+
+Para acceder mediante `http://print-shop-agent.com`:
+
+1. Abrir **PowerShell como Administrador**
+2. Ejecutar:
+```powershell
+cd C:\Users\<username>\Documents\print-shop-agent\scripts
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+.\add-hosts-entry.ps1
+```
+
+El script `add-hosts-entry.ps1`:
+- Agrega `127.0.0.1 print-shop-agent.com` al archivo hosts de Windows
+- Limpia el cache DNS automáticamente
+- Verifica permisos de administrador
+
+### Docker Hub
+
+```bash
+# Descargar y ejecutar desde Docker Hub
+docker pull <username>/print-shop-generator:latest
+docker run -d -p 80:8000 <username>/print-shop-generator:latest
+```
+
 ## Uso
 
 1. **Cargar imágenes**: Arrastra archivos al área de carga, haz clic para seleccionar, o usa Ctrl+V para pegar
@@ -125,9 +179,14 @@ print-shop-agent/
 │   │   └── utils/          # Utilidades
 │   ├── css/
 │   └── README.md
+├── scripts/                # Scripts de utilidad
+│   ├── start.bat           # Iniciar servidor (Windows)
+│   ├── test.bat            # Ejecutar tests (Windows)
+│   ├── entrypoint.sh       # Entrypoint Docker (limpieza)
+│   └── add-hosts-entry.ps1 # Configurar DNS local (Admin)
 ├── docs/                   # Documentación adicional
-├── scripts/                # Scripts de inicio
-├── output/                 # Documentos generados (auto-creado)
+├── Dockerfile              # Imagen Docker (backend + frontend)
+├── docker-compose.yml      # Orquestación de contenedores
 ├── requirements.txt        # Dependencias de producción
 ├── requirements-dev.txt    # Dependencias de desarrollo
 └── README.md

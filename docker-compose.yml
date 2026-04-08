@@ -1,0 +1,40 @@
+# ============================================
+# Print Shop Generator - Docker Compose
+# ============================================
+# Run with: docker-compose up -d
+# Access at: http://localhost or http://print-shop-agent.com (add to hosts file)
+
+services:
+  # Main application (backend + frontend)
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: print-shop-app
+    restart: unless-stopped
+    environment:
+      - APP_ENV=production
+      - HOST=0.0.0.0
+      - PORT=8000
+      - LOG_LEVEL=INFO
+      - OUTPUT_DIR=/app/backend/output
+    ports:
+      - "80:8000"
+    volumes:
+      # Persist generated documents
+      - print_shop_output:/app/backend/output
+      # Persist logs
+      - print_shop_logs:/app/backend/logs
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+# Named volumes for persistence
+volumes:
+  print_shop_output:
+    name: print_shop_output
+  print_shop_logs:
+    name: print_shop_logs

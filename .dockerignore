@@ -1,0 +1,61 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.venv/
+.env
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Output files (will be mounted as volume)
+backend/output/
+backend/logs/
+
+# Development files
+requirements-dev.txt
+pyproject.toml
+.ruff_cache/
+.mypy_cache/
+
+# Scripts (not needed in container, except entrypoint)
+scripts/*.bat
+!scripts/entrypoint.sh
+
+# Claude/AI configs
+.claude/
+analisis_*.md
+planificacion_*.md
+
+# Docker files (avoid recursive copy)
+Dockerfile
+docker-compose.yml
+.dockerignore
+nginx/

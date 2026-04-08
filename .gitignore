@@ -67,8 +67,9 @@ dmypy.json
 # Application Specific
 # ============================================
 # Output directory (documentos generados)
-output/*.docx
+*.docx
 output/*.pdf
+backend/output/
 !output/.gitkeep
 
 # Logs
