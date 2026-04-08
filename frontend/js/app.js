@@ -357,23 +357,27 @@ class PrintShopApp {
     handleHistoryDownload(filename) {
         const url = this.api.getDownloadUrl(filename);
 
-        // Verificar si el archivo existe
-        fetch(url, { method: 'HEAD' })
+        // Descargar directamente usando fetch para manejar errores
+        fetch(url)
             .then(response => {
-                if (response.ok) {
-                    // Crear link temporal para descargar
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = filename;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                } else {
-                    this.notifications.warning('El archivo ya no está disponible en el servidor');
+                if (!response.ok) {
+                    throw new Error('File not found');
                 }
+                return response.blob();
+            })
+            .then(blob => {
+                // Crear URL temporal para el blob y descargar
+                const blobUrl = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = blobUrl;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(blobUrl);
             })
             .catch(() => {
-                this.notifications.error('Error al descargar el archivo');
+                this.notifications.warning('El archivo ya no está disponible en el servidor');
             });
     }
 
