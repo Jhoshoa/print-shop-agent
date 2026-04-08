@@ -132,7 +132,7 @@ export class OptionsPanel {
                         <!-- Fila 2: Configuración de imágenes -->
                         <div>
                             <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Configuración de Imágenes</h4>
-                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
                                 <!-- Ancho de imagen -->
                                 <div>
                                     <label for="opt-image-width" class="block text-sm font-medium text-gray-700 mb-1">
@@ -140,22 +140,6 @@ export class OptionsPanel {
                                     </label>
                                     <input type="number" id="opt-image-width" class="input-field"
                                         value="9.3" min="1" max="30" step="0.1">
-                                </div>
-
-                                <!-- Imágenes por fila -->
-                                <div>
-                                    <label for="opt-images-per-row" class="block text-sm font-medium text-gray-700 mb-1">
-                                        Por fila
-                                    </label>
-                                    <select id="opt-images-per-row" class="input-field">
-                                        <option value="auto">Auto</option>
-                                        <option value="1">1</option>
-                                        <option value="2">2</option>
-                                        <option value="3">3</option>
-                                        <option value="4">4</option>
-                                        <option value="5">5</option>
-                                        <option value="6">6</option>
-                                    </select>
                                 </div>
 
                                 <!-- Espacio entre imágenes -->
@@ -180,7 +164,7 @@ export class OptionsPanel {
                         <!-- Fila 3: Posicionamiento de imágenes -->
                         <div>
                             <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Posicionamiento</h4>
-                            <div class="grid grid-cols-2 gap-4">
+                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
                                 <!-- Alineación -->
                                 <div>
                                     <label for="opt-alignment" class="block text-sm font-medium text-gray-700 mb-1">
@@ -201,6 +185,16 @@ export class OptionsPanel {
                                     <select id="opt-layout" class="input-field">
                                         <option value="vertical">Vertical (una por línea)</option>
                                         <option value="inline">En línea (lado a lado)</option>
+                                    </select>
+                                </div>
+
+                                <!-- Imágenes por fila (solo visible en modo inline) -->
+                                <div id="images-per-row-container" class="hidden">
+                                    <label for="opt-images-per-row" class="block text-sm font-medium text-gray-700 mb-1">
+                                        Por fila
+                                    </label>
+                                    <select id="opt-images-per-row" class="input-field">
+                                        <option value="auto">Auto</option>
                                     </select>
                                 </div>
                             </div>
@@ -299,6 +293,7 @@ export class OptionsPanel {
             margins: document.getElementById('opt-margins'),
             imageWidth: document.getElementById('opt-image-width'),
             imagesPerRow: document.getElementById('opt-images-per-row'),
+            imagesPerRowContainer: document.getElementById('images-per-row-container'),
             spacing: document.getElementById('opt-spacing'),
             borders: document.getElementById('opt-borders'),
             filename: document.getElementById('opt-filename'),
@@ -327,6 +322,7 @@ export class OptionsPanel {
         // Cambios en inputs -> actualizar preview y notificar
         const debouncedUpdate = debounce(() => {
             this.updateConfig();
+            this.updateImagesPerRowOptions();
             this.updatePreview();
             this.updateSummary();
             this.callbacks.onChange(this.getConfig());
@@ -340,6 +336,11 @@ export class OptionsPanel {
                 const eventType = element.type === 'checkbox' ? 'change' : 'input';
                 element.addEventListener(eventType, debouncedUpdate);
             }
+        });
+
+        // Evento especial para cambio de layout (mostrar/ocultar "Por fila")
+        this.elements.layout?.addEventListener('change', () => {
+            this.updateLayoutDependentFields();
         });
 
         // Validación de campos numéricos (solo números y punto decimal)
@@ -380,6 +381,94 @@ export class OptionsPanel {
                 });
             }
         });
+
+        // Inicializar visibilidad y opciones
+        this.updateLayoutDependentFields();
+        this.updateImagesPerRowOptions();
+    }
+
+    /**
+     * Calcula el máximo de imágenes que caben por fila
+     * @returns {number}
+     */
+    calculateMaxImagesPerRow() {
+        const pageSize = PAGE_SIZES[this.config.pageSize] || PAGE_SIZES.carta;
+        let pageWidth = pageSize.width;
+
+        // Ajustar si es horizontal
+        if (this.config.orientation === 'landscape') {
+            pageWidth = pageSize.height;
+        }
+
+        const margins = parseFloat(this.config.marginsCm) || 1.27;
+        const imageWidth = parseFloat(this.config.imageWidthCm) || 9.3;
+        const spacing = parseFloat(this.config.spacingCm) || 0.5;
+
+        // Espacio disponible = ancho página - márgenes de ambos lados
+        const availableWidth = pageWidth - (margins * 2);
+
+        // Calcular cuántas imágenes caben
+        // Primera imagen: imageWidth
+        // Siguientes: imageWidth + spacing
+        if (availableWidth < imageWidth) {
+            return 1;
+        }
+
+        // Fórmula: 1 + floor((availableWidth - imageWidth) / (imageWidth + spacing))
+        const additionalImages = Math.floor((availableWidth - imageWidth) / (imageWidth + spacing));
+        return Math.max(1, 1 + additionalImages);
+    }
+
+    /**
+     * Actualiza las opciones del dropdown "Por fila" según el espacio disponible
+     */
+    updateImagesPerRowOptions() {
+        const select = this.elements.imagesPerRow;
+        if (!select) return;
+
+        const maxImages = this.calculateMaxImagesPerRow();
+        const currentValue = select.value;
+
+        // Limpiar opciones existentes
+        select.innerHTML = '';
+
+        // Agregar opción Auto
+        const autoOption = document.createElement('option');
+        autoOption.value = 'auto';
+        autoOption.textContent = `Auto (${maxImages})`;
+        select.appendChild(autoOption);
+
+        // Agregar opciones numéricas válidas
+        for (let i = 1; i <= maxImages; i++) {
+            const option = document.createElement('option');
+            option.value = i.toString();
+            option.textContent = i.toString();
+            select.appendChild(option);
+        }
+
+        // Restaurar valor si es válido, sino usar 'auto'
+        if (currentValue === 'auto' || (parseInt(currentValue) <= maxImages)) {
+            select.value = currentValue;
+        } else {
+            select.value = 'auto';
+        }
+    }
+
+    /**
+     * Actualiza la visibilidad de campos dependientes del layout
+     */
+    updateLayoutDependentFields() {
+        const container = this.elements.imagesPerRowContainer;
+        if (!container) return;
+
+        const layout = this.elements.layout?.value || 'vertical';
+
+        if (layout === 'inline') {
+            container.classList.remove('hidden');
+            this.updateImagesPerRowOptions();
+        } else {
+            container.classList.add('hidden');
+        }
     }
 
     /**
@@ -450,6 +539,9 @@ export class OptionsPanel {
         if (this.elements.alignment) this.elements.alignment.value = this.config.imageAlignment || 'left';
         if (this.elements.layout) this.elements.layout.value = this.config.imageLayout || 'vertical';
 
+        // Actualizar visibilidad y opciones dependientes
+        this.updateLayoutDependentFields();
+        this.updateImagesPerRowOptions();
         this.updateSummary();
     }
 

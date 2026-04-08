@@ -472,18 +472,20 @@ class PrintShopApp {
             // Preparar datos
             const imageData = this.images.map(img => img.data);
 
-            // Obtener configuración del panel de opciones
+            // Obtener configuración del panel de opciones (ya viene en formato API)
             const panelConfig = this.optionsPanel?.getConfig() || {};
 
             const config = {
                 page_size: panelConfig.page_size || 'carta',
-                page_orientation: panelConfig.orientation === 'landscape' ? 'horizontal' : 'vertical',
+                page_orientation: panelConfig.page_orientation || 'vertical',
                 image_width_cm: panelConfig.image_width_cm || DEFAULT_CONFIG.imageWidthCm,
                 images_per_row: panelConfig.images_per_row || 'auto',
-                margins_cm: panelConfig.margins_cm || 1.5,
-                spacing_cm: panelConfig.spacing_cm || 0.5,
+                margins_cm: panelConfig.margins_cm || DEFAULT_CONFIG.marginsCm,
+                spacing_cm: panelConfig.spacing_cm || DEFAULT_CONFIG.spacingCm,
                 borders: panelConfig.borders || false,
                 filename: sanitizeFilename(panelConfig.filename) || 'documento',
+                image_alignment: panelConfig.image_alignment || 'left',
+                image_layout: panelConfig.image_layout || 'vertical',
             };
 
             // Actualizar loading con progreso estimado

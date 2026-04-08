@@ -206,14 +206,15 @@ export class ApiClient {
             images,
             config: {
                 page_size: config.page_size || config.pageSize || 'carta',
-                image_width_cm: parseFloat(config.image_width_cm || config.imageWidthCm) || 10,
+                page_orientation: config.page_orientation || config.orientation || 'vertical',
+                image_width_cm: parseFloat(config.image_width_cm || config.imageWidthCm) || 9.3,
                 images_per_row: config.images_per_row || config.imagesPerRow || 'auto',
-                filename: config.filename || 'documento',
-                // Opciones avanzadas (Fase 3)
-                orientation: config.orientation || 'portrait',
                 spacing_cm: parseFloat(config.spacing_cm || config.spacingCm) || 0.5,
-                margins_cm: parseFloat(config.margins_cm || config.marginsCm) || 1.5,
+                margins_cm: parseFloat(config.margins_cm || config.marginsCm) || 1.27,
                 borders: Boolean(config.borders),
+                filename: config.filename || 'documento',
+                image_alignment: config.image_alignment || config.imageAlignment || 'left',
+                image_layout: config.image_layout || config.imageLayout || 'vertical',
             },
         };
 
