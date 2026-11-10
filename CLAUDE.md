@@ -99,7 +99,7 @@ pip install -r requirements-dev.txt  # For development
 | `GET /api/config/defaults` | Default configuration values |
 | `GET /api/config/page-sizes` | Available page sizes |
 | `GET /api/health/status` | System status (CPU, memory, disk) |
-| `GET /api/files` | List generated files |
+| `GET /api/generator/files` | List generated files |
 
 Interactive API docs at http://localhost:8000/docs
 
@@ -114,6 +114,10 @@ Configure via `.env` file (see `.env.example`):
 - `APP_ENV`, `HOST`, `PORT`, `LOG_LEVEL`
 - `OUTPUT_DIR`, `MAX_FILE_SIZE_MB`
 - Default document settings (`DEFAULT_PAGE_SIZE`, `DEFAULT_IMAGE_WIDTH_CM`, etc.)
+
+## Deployment
+- Production (Render.com, free plan, auto-deploy from `main`): https://print-shop-agent.onrender.com/
+- Config: `render.yaml` + `.github/workflows/deploy.yml` (triggers Render deploy hook after tests pass)
 
 ## Docker
 

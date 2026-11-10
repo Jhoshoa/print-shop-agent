@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     output_dir: Path = Field(default=Path("./output"))
 
     # Limits
-    max_file_size_mb: int = Field(default=50)
+    max_file_size_mb: int = Field(default=10)
     max_images_per_request: int = Field(default=100)
     cleanup_days: int = Field(default=7)
 

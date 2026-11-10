@@ -1,0 +1,141 @@
+@startuml dns-dominio
+title DNS y Dominio Personalizado - Route 53
+
+skinparam backgroundColor #FEFEFE
+skinparam defaultFontName Arial
+
+' === ESCENARIOS ===
+
+rectangle "Escenario 1: Sin Dominio (Solo IP)" as esc1 #FFE4E1 {
+
+    actor "Usuario" as user1 #lightblue
+    cloud "Internet" as inet1
+
+    rectangle "EC2" as ec2_1 #FF9900 {
+        component "IP: 54.123.45.67\n(Cambia cada reinicio)" as ip1
+    }
+
+    user1 -> inet1 : http://54.123.45.67
+    inet1 -> ec2_1
+
+    note bottom of ec2_1
+        **Problema:**
+        IP cambia cada vez que
+        la instancia se reinicia
+
+        **Solucion:**
+        Ver la nueva IP en consola EC2
+    end note
+}
+
+rectangle "Escenario 2: Con Dominio + DNS Dinamico" as esc2 #E6FFE6 {
+
+    actor "Usuario" as user2 #lightblue
+    cloud "Internet" as inet2
+
+    rectangle "Route 53" as r53 #4682B4 {
+
+        rectangle "Hosted Zone\nmidominio.com" as zone {
+
+            component "Registro A\napp.midominio.com" as record_a
+            note right of record_a
+                Type: A
+                Name: app
+                Value: 54.123.45.67
+                TTL: 300 (5 min)
+            end note
+        }
+    }
+
+    rectangle "EC2" as ec2_2 #FF9900 {
+        component "IP: 54.123.45.67" as ip2
+        component "Script: update-dns.sh" as script
+
+        note bottom of script
+            ```bash
+            #!/bin/bash
+            # Se ejecuta al iniciar instancia
+            PUBLIC_IP=$(curl -s http://169.254.169.254/...)
+            aws route53 change-resource-record-sets ...
+            ```
+        end note
+    }
+
+    user2 -> inet2 : http://app.midominio.com
+    inet2 -> r53 : DNS Query
+    r53 -> inet2 : 54.123.45.67
+    inet2 -> ec2_2 : HTTP Request
+
+    ec2_2 --> r53 : Actualiza IP\n(al iniciar)
+}
+
+' === FLUJO DETALLADO DNS DINAMICO ===
+
+newpage
+
+title Flujo DNS Dinamico - Secuencia de Eventos
+
+skinparam sequenceMessageAlign center
+
+actor "Usuario" as user
+participant "Route 53\nDNS" as r53_seq #4682B4
+participant "EC2\nInstance" as ec2_seq #FF9900
+participant "EventBridge\n+ Lambda" as lambda_seq #FF8C00
+database "Metadata\nService" as meta #lightgray
+
+== 1. Scheduler inicia la instancia ==
+
+lambda_seq -> ec2_seq : StartInstances()
+activate ec2_seq
+ec2_seq -> ec2_seq : Booting...
+note right: Nueva IP publica asignada\n(puede ser diferente)
+
+== 2. Script de DNS Dinamico se ejecuta ==
+
+ec2_seq -> meta : GET /latest/meta-data/public-ipv4
+meta --> ec2_seq : 54.200.100.50
+
+ec2_seq -> ec2_seq : update-dns.sh
+note right
+    Compara IP actual con
+    registro DNS existente
+end note
+
+ec2_seq -> r53_seq : ChangeResourceRecordSets\n(UPSERT registro A)
+note right of r53_seq
+    {
+      "Action": "UPSERT",
+      "Name": "app.midominio.com",
+      "Type": "A",
+      "Value": "54.200.100.50",
+      "TTL": 300
+    }
+end note
+
+r53_seq --> ec2_seq : Change submitted
+
+== 3. Propagacion DNS (1-5 minutos) ==
+
+r53_seq -> r53_seq : Propagando\ncambios...
+note right: TTL anterior debe expirar
+
+== 4. Usuario accede a la aplicacion ==
+
+user -> r53_seq : DNS Query\napp.midominio.com
+r53_seq --> user : 54.200.100.50
+
+user -> ec2_seq : HTTP Request\n54.200.100.50
+ec2_seq --> user : HTTP Response
+
+deactivate ec2_seq
+
+== 5. Scheduler detiene la instancia ==
+
+lambda_seq -> ec2_seq : StopInstances()
+note right
+    IP publica se libera
+    Registro DNS queda obsoleto
+    (No importa, instancia apagada)
+end note
+
+@enduml
