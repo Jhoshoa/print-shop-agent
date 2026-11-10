@@ -11,6 +11,7 @@ from typing import Literal
 
 from PIL import Image
 
+from app.config import settings
 from app.core.constants import ALLOWED_MIME_TYPES, LIMITS
 from app.core.exceptions import ImageProcessingError, InvalidImageError
 from app.core.logging import logger
@@ -44,7 +45,7 @@ class ImageProcessor:
     def __init__(self) -> None:
         """Initialize the image processor."""
         self._processed_count = 0
-        self.max_image_size = LIMITS["max_image_size_bytes"]
+        self.max_image_size = settings.max_file_size_mb * 1024 * 1024
         self.max_dimension = LIMITS["max_image_dimension"]
 
     def decode_base64(self, base64_string: str) -> bytes:

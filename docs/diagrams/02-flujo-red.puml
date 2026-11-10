@@ -1,0 +1,109 @@
+@startuml flujo-red
+title Flujo de Red y Security Groups
+
+skinparam backgroundColor #FEFEFE
+skinparam defaultFontName Arial
+skinparam sequenceMessageAlign center
+
+' === PARTICIPANTES ===
+actor "Usuario\n(Navegador)" as user #lightblue
+participant "Internet\nGateway" as igw #orange
+participant "Security Group\n(print-shop-sg)" as sg #FFE4B5
+participant "EC2\n(t4g.small)" as ec2 #FF9900
+participant "FastAPI\n(Puerto 80)" as app #90EE90
+database "Output\nDirectory" as output #lightgray
+
+' === FLUJO HTTP REQUEST ===
+== Peticion HTTP (Cargar pagina) ==
+
+user -> igw : HTTP Request\nPuerto 80
+note right: IP Publica de EC2\no dominio personalizado
+
+igw -> sg : Evaluar reglas\nInbound
+
+note over sg #lightgreen
+    **Regla HTTP:**
+    Type: HTTP
+    Port: 80
+    Source: 0.0.0.0/0
+    **PERMITIDO**
+end note
+
+sg -> ec2 : Request permitido
+
+ec2 -> app : Forward request
+
+app -> app : Procesar request
+
+app --> ec2 : HTML/JS/CSS Response
+ec2 --> sg : Response
+sg --> igw : Response
+igw --> user : Pagina web cargada
+
+== Subir Imagenes y Generar Documento ==
+
+user -> igw : POST /api/generator/generate\n(imagenes base64)
+igw -> sg : Puerto 80
+sg -> ec2 : Request
+ec2 -> app : Forward
+
+app -> app : Validar imagenes
+app -> app : Procesar imagenes
+app -> app : Generar .docx
+app -> output : Guardar documento
+
+app --> ec2 : JSON Response\n{filename: "doc_xxx.docx"}
+ec2 --> sg : Response
+sg --> igw : Response
+igw --> user : Documento generado
+
+== Descargar Documento ==
+
+user -> igw : GET /api/generator/download/doc_xxx.docx
+igw -> sg : Puerto 80
+sg -> ec2 : Request
+ec2 -> app : Forward
+
+app -> output : Leer archivo
+output --> app : Contenido .docx
+
+app --> ec2 : File Response
+ec2 --> sg : Response
+sg --> igw : Response
+igw --> user : Descarga archivo .docx
+
+== Conexion SSH (Solo Admin) ==
+
+actor "Administrador" as admin #pink
+
+admin -> igw : SSH Request\nPuerto 22
+igw -> sg : Evaluar reglas
+
+note over sg #lightyellow
+    **Regla SSH:**
+    Type: SSH
+    Port: 22
+    Source: TU_IP/32
+    **Solo tu IP permitida**
+end note
+
+sg -> ec2 : SSH permitido
+ec2 --> admin : Conexion SSH establecida
+
+== Intento de acceso no autorizado ==
+
+actor "Atacante" as attacker #red
+
+attacker -> igw : SSH desde otra IP\nPuerto 22
+igw -> sg : Evaluar reglas
+
+note over sg #lightcoral
+    **Regla SSH:**
+    Source: TU_IP/32
+    IP atacante != TU_IP
+    **DENEGADO**
+end note
+
+sg -x attacker : Connection refused
+
+@enduml

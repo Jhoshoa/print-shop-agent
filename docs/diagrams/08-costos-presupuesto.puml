@@ -1,0 +1,129 @@
+@startuml costos-presupuesto
+title AWS Budgets y Control de Costos
+
+skinparam backgroundColor #FEFEFE
+skinparam defaultFontName Arial
+
+' === PRESUPUESTO ===
+rectangle "AWS Budget: print-shop-monthly-budget" as budget #FFFACD {
+
+    rectangle "Presupuesto: $5.00 USD/mes" as limit #FFD700 {
+
+        ' Alertas
+        rectangle "Alertas Configuradas" as alerts #F5F5F5 {
+
+            component "Alerta 50%\n($2.50)" as alert50 #90EE90
+            component "Alerta 80%\n($4.00)" as alert80 #FFE4B5
+            component "Alerta 100%\n($5.00)" as alert100 #FFB6C1
+        }
+    }
+}
+
+' === SERVICIOS Y COSTOS ===
+rectangle "Desglose de Costos Mensuales" as costs #F0FFF0 {
+
+    rectangle "EC2 (t4g.small)" as ec2_cost #FF9900 {
+        component "$1.64/mes" as ec2_price
+        note bottom
+            97.5 horas/mes
+            x $0.0168/hora
+            = $1.64
+        end note
+    }
+
+    rectangle "EBS (gp3)" as ebs_cost #4169E1 {
+        component "$0.80/mes" as ebs_price
+        note bottom
+            10 GB
+            x $0.08/GB
+            = $0.80
+        end note
+    }
+
+    rectangle "Lambda" as lambda_cost #FF8C00 {
+        component "$0.00/mes" as lambda_price
+        note bottom
+            ~60 invocaciones/mes
+            Free tier: 1M/mes
+            = $0.00
+        end note
+    }
+
+    rectangle "EventBridge" as eb_cost #9370DB {
+        component "$0.00/mes" as eb_price
+        note bottom
+            Schedules
+            = $0.00
+        end note
+    }
+
+    rectangle "Data Transfer" as transfer_cost #228B22 {
+        component "$0.00/mes" as transfer_price
+        note bottom
+            < 100 GB/mes
+            Free tier
+            = $0.00
+        end note
+    }
+
+    rectangle "Route 53\n(Opcional)" as r53_cost #4682B4 {
+        component "$0.50/mes" as r53_price
+        note bottom
+            Hosted Zone
+            = $0.50
+        end note
+    }
+}
+
+' === TOTAL ===
+rectangle "TOTAL ESTIMADO" as total #DC143C {
+    component "~$2.50 - $3.00/mes\n(sin/con Route 53)" as total_price #white
+}
+
+' === NOTIFICACIONES ===
+actor "Administrador" as admin #lightblue
+component "Email\nNotifications" as email #E6E6FA
+
+' === CONEXIONES ===
+ec2_cost --> total
+ebs_cost --> total
+lambda_cost --> total
+eb_cost --> total
+transfer_cost --> total
+r53_cost --> total : Opcional
+
+alert50 --> email : Envia cuando\ncosto >= $2.50
+alert80 --> email : Envia cuando\ncosto >= $4.00
+alert100 --> email : Envia cuando\ncosto >= $5.00
+
+email --> admin : Alertas
+
+' === COMPARACION ===
+note as comparison
+    **Comparacion de Costos:**
+
+    | Escenario | Horas/mes | Costo EC2 | Total |
+    |-----------|-----------|-----------|-------|
+    | **Programado (L-V 4.5h)** | 97.5 | $1.64 | ~$2.50 |
+    | 24/7 | 730 | $12.26 | ~$13.00 |
+    | **Ahorro** | -87% | -$10.62 | ~$10.50 |
+
+    **Desglose Programado:**
+    - 4.5 horas/dia x 5 dias = 22.5 horas/semana
+    - 22.5 horas x 4.33 semanas = 97.5 horas/mes
+end note
+
+' === TIMELINE ===
+note as timeline
+    **Proyeccion Anual:**
+
+    | Componente | Mensual | Anual |
+    |------------|---------|-------|
+    | EC2 + EBS | $2.44 | $29.28 |
+    | Route 53 (opc) | $0.50 | $6.00 |
+    | Dominio .com (opc) | - | $13.00 |
+    | **Total basico** | **$2.50** | **$30.00** |
+    | **Total con dominio** | **$3.00** | **$48.00** |
+end note
+
+@enduml

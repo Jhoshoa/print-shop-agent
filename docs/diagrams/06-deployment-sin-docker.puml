@@ -1,0 +1,138 @@
+@startuml deployment-sin-docker
+title OPCION A: Deployment Sin Docker (Recomendado)
+
+skinparam backgroundColor #FEFEFE
+skinparam defaultFontName Arial
+skinparam componentStyle rectangle
+
+' === EC2 INSTANCE ===
+rectangle "EC2 Instance (t4g.small)" as ec2 #FF9900 {
+
+    rectangle "Amazon Linux 2023 (ARM64)" as os #FFF8DC {
+
+        ' --- SYSTEMD ---
+        rectangle "Systemd" as systemd #E6E6FA {
+            component "print-shop.service" as service #9370DB
+            note right of service
+                [Unit]
+                Description=Print Shop Generator
+                After=network.target
+
+                [Service]
+                Type=simple
+                User=root
+                WorkingDirectory=/home/ec2-user/print-shop/backend
+                ExecStart=/home/ec2-user/print-shop/venv/bin/python \
+                    -m uvicorn app.main:app --host 0.0.0.0 --port 80
+                Restart=always
+            end note
+        }
+
+        ' --- FILESYSTEM ---
+        rectangle "Sistema de Archivos" as fs #F5F5F5 {
+
+            folder "/home/ec2-user/print-shop/" as project {
+
+                folder "backend/" as backend {
+
+                    file ".env" as env_file #90EE90
+                    note bottom of env_file
+                        APP_ENV=production
+                        OUTPUT_DIR=./output
+                        PORT=80
+                    end note
+
+                    folder "app/" as app_dir {
+                        file "main.py" as main #lightblue
+                        file "config.py" as config #lightblue
+                        folder "services/" as services
+                        folder "api/" as api
+                    }
+
+                    folder "output/" as output_dir #FFE4B5 {
+                        file "documento_xxx.docx" as docx
+                    }
+
+                    folder "logs/" as logs_dir #FFB6C1 {
+                        file "app.log" as log_app
+                        file "error.log" as log_err
+                    }
+                }
+
+                folder "frontend/" as frontend_dir {
+                    file "index.html" as html
+                    folder "js/" as js_dir
+                    folder "css/" as css_dir
+                }
+
+                folder "venv/" as venv #E6FFE6 {
+                    file "bin/python" as python
+                    file "bin/uvicorn" as uvicorn
+                    folder "lib/python3.12/site-packages/" as packages
+                }
+
+                file "requirements.txt" as reqs
+            }
+        }
+
+        ' --- PROCESOS ---
+        rectangle "Procesos en Ejecucion" as procs #F0FFF0 {
+
+            component "uvicorn\n(PID: 1234)" as uvicorn_proc #90EE90 {
+            }
+
+            component "python\n(worker)" as worker1 #90EE90
+            component "python\n(worker)" as worker2 #90EE90
+
+            note bottom of uvicorn_proc
+                **Puerto:** 80 (privilegiado)
+                **Usuario:** root
+                **RAM:** ~200-400 MB
+                **Workers:** auto (2 para t4g.small)
+            end note
+        }
+    }
+
+    ' --- EBS ---
+    database "EBS Volume\n10 GB gp3" as ebs #4169E1
+}
+
+' === CONEXIONES INTERNAS ===
+
+' Systemd -> Proceso
+service --> uvicorn_proc : Inicia/Gestiona
+service --> log_app : StandardOutput
+service --> log_err : StandardError
+
+' Uvicorn -> Workers
+uvicorn_proc --> worker1
+uvicorn_proc --> worker2
+
+' Proceso -> Archivos
+uvicorn_proc --> main : Ejecuta
+main --> config : Carga
+config --> env_file : Lee variables
+main --> output_dir : Escribe .docx
+main --> frontend_dir : Sirve estaticos
+
+' Filesystem -> EBS
+fs --> ebs : Almacenado en
+
+' === FLUJO DE REQUEST ===
+actor "Usuario" as user #lightblue
+
+user --> uvicorn_proc : HTTP :80
+uvicorn_proc --> user : Response
+
+' === LEYENDA ===
+legend bottom
+    **Ventajas de Sin Docker:**
+    | Aspecto | Valor |
+    | RAM | ~200-400 MB (vs ~500 MB con Docker) |
+    | Inicio | ~5 seg (vs ~20 seg con Docker) |
+    | Logs | journalctl -u print-shop |
+    | Debug | Directo en filesystem |
+    | Update | git pull && systemctl restart |
+end legend
+
+@enduml

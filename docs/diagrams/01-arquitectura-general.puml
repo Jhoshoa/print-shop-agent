@@ -1,0 +1,128 @@
+@startuml arquitectura-general
+!theme aws-orange
+title Arquitectura General - Print Shop Generator en AWS
+
+' Definir estilos
+skinparam backgroundColor #FEFEFE
+skinparam componentStyle rectangle
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+
+' Iconos AWS (usando estereotipos)
+!define AWSColor #FF9900
+
+' === ACTORES ===
+actor "Usuario" as user #lightblue
+
+' === INTERNET ===
+cloud "Internet" as internet {
+}
+
+' === AWS CLOUD ===
+rectangle "AWS Cloud" as aws #white {
+
+    ' --- VPC ---
+    rectangle "VPC (Default)" as vpc #F5F5F5 {
+
+        ' Security Group
+        rectangle "Security Group\n(print-shop-sg)" as sg #FFE4B5 {
+            note right of sg
+                Inbound Rules:
+                - SSH (22) desde tu IP
+                - HTTP (80) desde cualquier IP
+                - HTTPS (443) desde cualquier IP
+            end note
+        }
+
+        ' Subnet
+        rectangle "Public Subnet" as subnet #E6F3FF {
+
+            ' EC2 Instance
+            rectangle "EC2 Instance\n(t4g.small)" as ec2 #FF9900 {
+                rectangle "Amazon Linux 2023\n(ARM64)" as os #FFF8DC {
+
+                    rectangle "Print Shop Generator" as app #90EE90 {
+                        component "FastAPI\n(Puerto 80)" as fastapi
+                        component "Frontend\n(Static Files)" as frontend
+                        database "Output\n(./output)" as output
+                    }
+                }
+            }
+
+            ' EBS Volume
+            database "EBS Volume\ngp3 (10 GB)" as ebs #4169E1
+        }
+    }
+
+    ' --- Servicios externos a VPC ---
+    rectangle "Servicios AWS" as services #FFF0F5 {
+
+        rectangle "Instance Scheduler" as scheduler #E6E6FA {
+            component "EventBridge\nScheduler" as eventbridge #9370DB
+            component "Lambda\n(Start/Stop)" as lambda #FF8C00
+        }
+
+        rectangle "Monitoreo" as monitoring #F0FFF0 {
+            component "CloudWatch\nLogs" as cloudwatch #228B22
+            component "AWS Budgets\n($5 limite)" as budgets #DC143C
+        }
+
+        rectangle "DNS (Opcional)" as dns #F0FFFF {
+            component "Route 53\nHosted Zone" as route53 #4682B4
+        }
+    }
+
+    ' --- IAM ---
+    rectangle "IAM" as iam #FFFACD {
+        component "Usuario IAM\n(admin-print-shop)" as iamuser
+        component "Rol Lambda\n(lambda-ec2-scheduler-role)" as iamrole
+    }
+}
+
+' === CONEXIONES ===
+
+' Usuario -> Internet -> AWS
+user --> internet : HTTPS/HTTP
+internet --> sg : Puerto 80/443
+
+' Security Group -> EC2
+sg --> ec2
+
+' EC2 interno
+fastapi --> frontend : Sirve archivos
+fastapi --> output : Guarda .docx
+
+' EC2 -> EBS
+ec2 --> ebs : Almacenamiento
+
+' Scheduler
+eventbridge --> lambda : Trigger\n(Cron L-V)
+lambda --> ec2 : Start/Stop\nInstance
+
+' IAM
+iamrole --> lambda : Permisos
+iamuser --> aws : Administracion
+
+' Monitoreo
+ec2 ..> cloudwatch : Metricas/Logs
+budgets ..> user : Alertas Email
+
+' DNS
+route53 ..> ec2 : Resolucion DNS\n(Opcional)
+
+' === NOTAS ===
+note bottom of ec2
+    **Horario Programado:**
+    Encender: L-V 11:25 AM
+    Apagar: L-V 4:05 PM
+    (Hora Bolivia UTC-4)
+end note
+
+note bottom of budgets
+    **Alertas configuradas:**
+    - 50% ($2.50)
+    - 80% ($4.00)
+    - 100% ($5.00)
+end note
+
+@enduml

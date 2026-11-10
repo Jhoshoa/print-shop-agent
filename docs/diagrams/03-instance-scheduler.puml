@@ -1,0 +1,140 @@
+@startuml instance-scheduler
+title AWS Instance Scheduler - EventBridge + Lambda
+
+skinparam backgroundColor #FEFEFE
+skinparam defaultFontName Arial
+
+' === COMPONENTES ===
+
+rectangle "Amazon EventBridge" as eb #9370DB {
+
+    rectangle "Schedule: start-print-shop-daily" as sched_start #E6E6FA {
+        note right
+            **Cron Expression:**
+            25 15 ? * MON-FRI *
+
+            **Explicacion:**
+            Minuto: 25
+            Hora: 15 (UTC)
+            Dia mes: cualquiera
+            Mes: cualquiera
+            Dia semana: Lunes-Viernes
+
+            **Hora Local (Bolivia UTC-4):**
+            11:25 AM
+        end note
+    }
+
+    rectangle "Schedule: stop-print-shop-daily" as sched_stop #E6E6FA {
+        note right
+            **Cron Expression:**
+            5 20 ? * MON-FRI *
+
+            **Explicacion:**
+            Minuto: 5
+            Hora: 20 (UTC)
+
+            **Hora Local (Bolivia UTC-4):**
+            4:05 PM
+        end note
+    }
+}
+
+rectangle "AWS Lambda" as lambda_svc #FF8C00 {
+
+    component "start-print-shop-instance" as lambda_start #FFD700 {
+    }
+
+    component "stop-print-shop-instance" as lambda_stop #FFD700 {
+    }
+
+    note bottom of lambda_start
+        ```python
+        import boto3
+
+        def lambda_handler(event, context):
+            ec2 = boto3.client('ec2')
+            instance_id = 'i-xxxxx'
+
+            ec2.start_instances(
+                InstanceIds=[instance_id]
+            )
+            return {'status': 'started'}
+        ```
+    end note
+}
+
+rectangle "IAM" as iam #FFFACD {
+    component "lambda-ec2-scheduler-role" as role {
+    }
+
+    note bottom of role
+        **Politicas adjuntas:**
+        - AmazonEC2FullAccess
+        - AWSLambdaBasicExecutionRole
+
+        **Permite:**
+        - ec2:StartInstances
+        - ec2:StopInstances
+        - logs:CreateLogGroup
+        - logs:PutLogEvents
+    end note
+}
+
+rectangle "Amazon EC2" as ec2_svc #FF9900 {
+
+    rectangle "print-shop-server\n(t4g.small)" as ec2 {
+
+        rectangle "Estado: Running" as running #90EE90
+        rectangle "Estado: Stopped" as stopped #FFB6C1
+    }
+}
+
+rectangle "CloudWatch Logs" as cw #228B22 {
+    component "/aws/lambda/start-print-shop-instance" as log_start
+    component "/aws/lambda/stop-print-shop-instance" as log_stop
+}
+
+' === CONEXIONES ===
+
+' EventBridge -> Lambda
+sched_start --> lambda_start : Trigger\n(11:25 AM L-V)
+sched_stop --> lambda_stop : Trigger\n(4:05 PM L-V)
+
+' Lambda -> EC2
+lambda_start --> ec2 : StartInstances()
+lambda_stop --> ec2 : StopInstances()
+
+' IAM -> Lambda
+role --> lambda_start : AssumeRole
+role --> lambda_stop : AssumeRole
+
+' Lambda -> CloudWatch
+lambda_start ..> log_start : Logs
+lambda_stop ..> log_stop : Logs
+
+' Estados EC2
+lambda_start ..> running : Resultado
+lambda_stop ..> stopped : Resultado
+
+' === NOTAS ===
+
+note as timeline
+    **Linea de Tiempo Diaria (L-V):**
+
+    | Hora (Bolivia) | Hora (UTC) | Accion |
+    |----------------|------------|--------|
+    | 11:25 AM | 15:25 | Lambda START |
+    | 11:26 AM | 15:26 | EC2 Running |
+    | 11:30 AM | 15:30 | App disponible |
+    | 4:00 PM | 20:00 | Fin uso normal |
+    | 4:05 PM | 20:05 | Lambda STOP |
+    | 4:06 PM | 20:06 | EC2 Stopped |
+
+    **Ahorro:**
+    Solo 4.5 horas/dia = 22.5 horas/semana
+    vs 168 horas/semana (24/7)
+    = ~87% ahorro
+end note
+
+@enduml

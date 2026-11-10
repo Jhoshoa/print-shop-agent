@@ -1,0 +1,173 @@
+@startuml iam-roles
+title IAM - Usuarios, Roles y Politicas
+
+skinparam backgroundColor #FEFEFE
+skinparam defaultFontName Arial
+skinparam componentStyle rectangle
+
+' === CUENTA ROOT ===
+rectangle "Cuenta AWS" as account #FFE4E1 {
+
+    actor "Root User\n(email@example.com)" as root #DC143C
+    note right of root
+        **SOLO usar para:**
+        - Configuracion inicial
+        - Cambiar plan de soporte
+        - Cerrar cuenta
+
+        **NUNCA usar para:**
+        - Tareas diarias
+        - Crear recursos
+
+        **Proteccion:**
+        - MFA activado
+        - Contrasena fuerte
+    end note
+}
+
+' === USUARIOS IAM ===
+rectangle "IAM Users" as users #FFFACD {
+
+    actor "admin-print-shop" as admin #4169E1
+
+    note right of admin
+        **Tipo:** Usuario IAM
+        **Acceso:** Console + Programatico
+        **Uso:** Administracion diaria
+
+        **Politicas adjuntas:**
+    end note
+}
+
+' === POLITICAS PARA USUARIO ===
+rectangle "Politicas del Usuario Admin" as admin_policies #F0FFF0 {
+
+    component "AmazonEC2FullAccess" as pol_ec2 #90EE90 {
+    }
+    note bottom of pol_ec2
+        Permite:
+        - Crear/eliminar instancias
+        - Gestionar Security Groups
+        - Gestionar Key Pairs
+        - Ver metricas EC2
+    end note
+
+    component "AmazonEventBridgeFullAccess" as pol_eb #90EE90 {
+    }
+    note bottom of pol_eb
+        Permite:
+        - Crear/editar schedules
+        - Gestionar reglas
+        - Ver eventos
+    end note
+
+    component "AWSLambda_FullAccess" as pol_lambda #90EE90 {
+    }
+    note bottom of pol_lambda
+        Permite:
+        - Crear/editar funciones
+        - Ver logs
+        - Gestionar triggers
+    end note
+
+    component "IAMFullAccess" as pol_iam #90EE90 {
+    }
+    note bottom of pol_iam
+        Permite:
+        - Crear roles
+        - Adjuntar politicas
+        - Gestionar usuarios
+    end note
+
+    component "AWSBudgetsActions\nWithAWSResourceControlAccess" as pol_budget #90EE90 {
+    }
+    note bottom of pol_budget
+        Permite:
+        - Crear presupuestos
+        - Configurar alertas
+        - Ver costos
+    end note
+}
+
+' === ROLES IAM ===
+rectangle "IAM Roles" as roles #E6E6FA {
+
+    component "lambda-ec2-scheduler-role" as role_lambda #9370DB {
+    }
+    note right of role_lambda
+        **Trusted Entity:** Lambda
+        **Uso:** Funciones de scheduler
+
+        **Permite a Lambda:**
+        - Iniciar instancias EC2
+        - Detener instancias EC2
+        - Escribir logs en CloudWatch
+    end note
+
+    component "ec2-route53-dynamic-dns\n(Opcional)" as role_ec2 #9370DB {
+    }
+    note right of role_ec2
+        **Trusted Entity:** EC2
+        **Uso:** DNS dinamico
+
+        **Permite a EC2:**
+        - Actualizar registros Route 53
+        - Leer zonas hospedadas
+    end note
+}
+
+' === POLITICAS PARA ROLES ===
+rectangle "Politicas de Roles" as role_policies #FFF0F5 {
+
+    component "AmazonEC2FullAccess" as role_pol_ec2 #FFB6C1
+    component "AWSLambdaBasicExecutionRole" as role_pol_logs #FFB6C1
+    component "route53-dynamic-dns-policy\n(Custom)" as role_pol_r53 #FFB6C1
+}
+
+' === SERVICIOS ===
+rectangle "Servicios AWS" as services #F5F5F5 {
+    component "Lambda Functions" as svc_lambda #FF8C00
+    component "EC2 Instance" as svc_ec2 #FF9900
+    component "Route 53" as svc_r53 #4682B4
+    component "CloudWatch" as svc_cw #228B22
+}
+
+' === CONEXIONES ===
+
+' Root -> Cuenta
+root --> account : Propietario
+
+' Admin -> Politicas
+admin --> pol_ec2
+admin --> pol_eb
+admin --> pol_lambda
+admin --> pol_iam
+admin --> pol_budget
+
+' Role Lambda -> Politicas
+role_lambda --> role_pol_ec2 : Adjunta
+role_lambda --> role_pol_logs : Adjunta
+
+' Role EC2 -> Politicas
+role_ec2 --> role_pol_r53 : Adjunta
+
+' Roles -> Servicios (AssumeRole)
+role_lambda ..> svc_lambda : AssumeRole
+role_ec2 ..> svc_ec2 : AssumeRole
+
+' Servicios -> Otros servicios
+svc_lambda --> svc_ec2 : StartInstances\nStopInstances
+svc_lambda --> svc_cw : PutLogEvents
+svc_ec2 --> svc_r53 : ChangeResourceRecordSets
+
+' === LEYENDA ===
+legend bottom
+    |= Color |= Significado |
+    | <#DC143C> | Root User (evitar uso) |
+    | <#4169E1> | Usuario IAM Admin |
+    | <#90EE90> | Politica AWS Managed |
+    | <#FFB6C1> | Politica para Roles |
+    | <#9370DB> | IAM Role |
+end legend
+
+@enduml

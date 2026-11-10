@@ -53,7 +53,6 @@ LIMITS = {
     "max_spacing_cm": 3.0,
     "max_images_per_row": 6,
     "max_images_per_document": 100,
-    "max_image_size_bytes": 10 * 1024 * 1024,  # 10MB
     "max_image_dimension": 8000,  # pixels
 }
 

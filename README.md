@@ -1,6 +1,16 @@
 # Print Shop Generator
 
-Aplicación web local para generar documentos Word (.docx) a partir de imágenes, optimizada para impresión en tiendas de impresión/papelerías.
+[![CI/CD](https://github.com/Jhoshoa/print-shop-agent/actions/workflows/deploy.yml/badge.svg)](https://github.com/Jhoshoa/print-shop-agent/actions/workflows/deploy.yml)
+![Python](https://img.shields.io/badge/python-3.12-blue)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.109-009688)
+![Docker](https://img.shields.io/badge/docker-ready-2496ED)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
+Aplicación web que convierte lotes de imágenes en documentos Word (.docx) listos para imprimir, pensada para el flujo diario de imprentas y papelerías: lo que antes se maquetaba a mano en Word ahora toma segundos.
+
+**Demo en vivo:** https://print-shop-agent.onrender.com/
+
+> La demo corre en el plan gratuito de Render: si estuvo inactiva, la primera carga puede tardar ~30-50 segundos mientras el servicio despierta.
 
 ## Descripción
 
@@ -13,30 +23,21 @@ Esta herramienta permite:
 
 ## Capturas de Pantalla
 
-```
-┌────────────────────────────────────────────────┐
-│  📄 Generador de Documentos                    │
-│     Arrastra tus imágenes y genera documentos  │
-├────────────────────────────────────────────────┤
-│                                                │
-│     ┌──────────────────────────────────┐      │
-│     │                                  │      │
-│     │    Arrastra las imágenes aquí    │      │
-│     │    o haz clic para seleccionar   │      │
-│     │                                  │      │
-│     └──────────────────────────────────┘      │
-│                                                │
-│  🖼️ Imágenes cargadas: 8                       │
-│  ┌────┬────┬────┬────┬────┬────┬────┬────┐   │
-│  │ 1  │ 2  │ 3  │ 4  │ 5  │ 6  │ 7  │ 8  │   │
-│  └────┴────┴────┴────┴────┴────┴────┴────┘   │
-│                                                │
-│  ⚙️ Opciones: CARTA V · 10cm                   │
-│                                                │
-│  [      Generar Documento (8 imágenes)      ]  │
-│                                                │
-└────────────────────────────────────────────────┘
-```
+**Imágenes cargadas y listas para generar**
+
+![Imágenes cargadas](docs/images/app-images-loaded.png)
+
+**Opciones de documento con vista previa del layout**
+
+![Opciones de documento](docs/images/app-options.png)
+
+## Aspectos Técnicos Destacados
+
+- **Motor de layout automático:** calcula cuántas imágenes caben por fila según tamaño de hoja, orientación y ancho de imagen, y estima el número de páginas. Soporta disposición en grilla (tabla) o vertical.
+- **Pipeline de imágenes:** validación de formato, tamaño y dimensiones; redimensionado y conversión con Pillow antes de insertarlas con python-docx.
+- **Frontend modular sin frameworks:** componentes ES6 independientes (dropzone, grilla ordenable, panel de opciones, vista previa, historial) y cliente API con reintentos.
+- **CI/CD completo:** cada push a `main` ejecuta Ruff, pytest con umbral de cobertura y build de Docker; si todo pasa, dispara el deploy en Render.
+- **Contenedor único:** el backend FastAPI sirve también el frontend estático, con health checks para la plataforma de hosting.
 
 ## Requisitos del Sistema
 
@@ -75,9 +76,6 @@ pip install -r requirements.txt
 ```bash
 # Windows
 scripts\start.bat
-
-# Linux/Mac
-./scripts/start.sh
 ```
 
 ### Manual
@@ -163,6 +161,8 @@ docker run -d -p 80:8000 <username>/print-shop-generator:latest
 
 ### Deploy en Render.com (Cloud)
 
+**Producción:** https://print-shop-agent.onrender.com/
+
 El proyecto incluye configuración para deploy automático en Render.com:
 
 1. Crear cuenta en [Render.com](https://render.com)
@@ -239,9 +239,8 @@ pytest backend/tests -v
 # Con cobertura
 pytest backend/tests --cov=backend/app --cov-report=html
 
-# Usando script
-scripts\test.bat   # Windows
-./scripts/test.sh  # Linux/Mac
+# Usando script (Windows)
+scripts\test.bat
 ```
 
 ## Configuración Disponible
@@ -261,11 +260,15 @@ scripts\test.bat   # Windows
 | Método | Endpoint | Descripción |
 |--------|----------|-------------|
 | GET | `/api/health` | Estado del servidor |
+| GET | `/api/health/status` | Estado del sistema (CPU, memoria, disco) |
 | GET | `/api/config/defaults` | Configuración por defecto |
-| POST | `/api/generate` | Generar documento |
-| GET | `/api/download/{file}` | Descargar documento |
+| GET | `/api/config/page-sizes` | Tamaños de página disponibles |
+| POST | `/api/generator/generate` | Generar documento |
+| GET | `/api/generator/download/{filename}` | Descargar documento |
+| GET | `/api/generator/files` | Listar documentos generados |
+| DELETE | `/api/generator/files/{filename}` | Eliminar documento |
 
-Documentación completa: http://localhost:8000/docs
+Documentación interactiva (solo en desarrollo): http://localhost:8000/docs
 
 ## Tecnologías
 
@@ -281,16 +284,21 @@ Documentación completa: http://localhost:8000/docs
 - TailwindCSS
 - HTML5 APIs (Drag & Drop, File, Clipboard)
 
+### Calidad y DevOps
+- pytest, pytest-cov, Ruff, mypy
+- Docker y docker-compose
+- GitHub Actions (CI/CD)
+- Render.com (hosting) y Docker Hub
+
 ## Limitaciones
 
 - Máximo 100 imágenes por documento
 - Máximo 10MB por imagen
 - Formatos: JPG, PNG, WebP, GIF, BMP
-- Requiere conexión al servidor local
 
 ## Licencia
 
-MIT License - Uso libre para proyectos personales y comerciales.
+[MIT](LICENSE) - Uso libre para proyectos personales y comerciales.
 
 ## Soporte
 

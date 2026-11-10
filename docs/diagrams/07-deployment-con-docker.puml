@@ -1,0 +1,154 @@
+@startuml deployment-con-docker
+title OPCION B: Deployment Con Docker
+
+skinparam backgroundColor #FEFEFE
+skinparam defaultFontName Arial
+skinparam componentStyle rectangle
+
+' === EC2 INSTANCE ===
+rectangle "EC2 Instance (t4g.small)" as ec2 #FF9900 {
+
+    rectangle "Amazon Linux 2023 (ARM64)" as os #FFF8DC {
+
+        ' --- DOCKER ENGINE ---
+        rectangle "Docker Engine" as docker #2496ED {
+
+            ' --- CONTAINER ---
+            rectangle "Container: print-shop-app" as container #E6F3FF {
+
+                rectangle "Python 3.12-slim (ARM64)" as python_img #FFE4B5 {
+
+                    component "uvicorn\n(Puerto 8000)" as uvicorn_docker #90EE90
+
+                    folder "/app/backend/" as app_backend {
+                        file "main.py" as main_d
+                        folder "app/" as app_d
+                    }
+
+                    folder "/app/frontend/" as app_frontend {
+                        file "index.html" as html_d
+                    }
+
+                    note bottom of uvicorn_docker
+                        **Dentro del contenedor:**
+                        Puerto: 8000
+                        User: root
+                        WorkDir: /app/backend
+                    end note
+                }
+            }
+
+            ' --- VOLUMES ---
+            rectangle "Docker Volumes" as volumes #E6E6FA {
+
+                database "print_shop_output" as vol_output #9370DB
+                note right of vol_output
+                    Montado en:
+                    /app/backend/output
+                    Persiste documentos .docx
+                end note
+
+                database "print_shop_logs" as vol_logs #9370DB
+                note right of vol_logs
+                    Montado en:
+                    /app/backend/logs
+                    Persiste logs
+                end note
+            }
+
+            ' --- NETWORK ---
+            rectangle "Docker Network" as network #F0FFF0 {
+                component "bridge" as bridge
+                note right
+                    Puerto mapping:
+                    80 (host) -> 8000 (container)
+                end note
+            }
+        }
+
+        ' --- HOST FILESYSTEM ---
+        rectangle "Host Filesystem" as host_fs #F5F5F5 {
+
+            folder "/home/ec2-user/print-shop/" as project_d {
+
+                file "docker-compose.yml" as compose #90EE90
+                note bottom of compose
+                    services:
+                      app:
+                        ports: "80:8000"
+                        environment:
+                          - APP_ENV=production
+                          - OUTPUT_DIR=/app/backend/output
+                        volumes:
+                          - print_shop_output:/app/backend/output
+                end note
+
+                file "Dockerfile" as dockerfile #lightblue
+            }
+
+            folder "/var/lib/docker/volumes/" as docker_vols {
+                folder "print_shop_output/_data/" as data_output
+                folder "print_shop_logs/_data/" as data_logs
+            }
+        }
+
+        ' --- SYSTEMD ---
+        rectangle "Systemd" as systemd_d #E6E6FA {
+            component "print-shop.service" as service_d #9370DB
+            note right of service_d
+                ExecStart=docker-compose up -d
+                ExecStop=docker-compose down
+            end note
+        }
+    }
+
+    ' --- EBS ---
+    database "EBS Volume\n10 GB gp3" as ebs_d #4169E1
+}
+
+' === CONEXIONES ===
+
+' Systemd -> Docker
+service_d --> docker : Gestiona
+
+' Docker -> Container
+docker --> container : Crea/Ejecuta
+
+' Port mapping
+bridge --> container : 8000
+
+' Volumes
+vol_output --> app_backend : Monta en /app/backend/output
+vol_logs --> app_backend : Monta en /app/backend/logs
+
+' Volumes -> Host
+vol_output --> data_output : Persiste en host
+vol_logs --> data_logs : Persiste en host
+
+' Host -> EBS
+host_fs --> ebs_d
+
+' Compose -> Docker
+compose --> docker : Configuracion
+
+' === REQUEST FLOW ===
+actor "Usuario" as user_d #lightblue
+
+user_d --> bridge : HTTP :80
+bridge --> uvicorn_docker : Forward :8000
+uvicorn_docker --> user_d : Response
+
+' === LEYENDA ===
+legend bottom
+    **Flujo de Puerto:**
+    Usuario -> :80 (Host) -> Docker Bridge -> :8000 (Container)
+
+    **Comandos utiles:**
+    | Comando | Descripcion |
+    | docker-compose ps | Ver estado |
+    | docker-compose logs -f | Ver logs |
+    | docker-compose restart | Reiniciar |
+    | docker-compose build | Reconstruir |
+end legend
+
+@enduml
