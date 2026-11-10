@@ -306,7 +306,3 @@ Para reportar bugs o solicitar funcionalidades:
 1. Revisa la documentación en `/docs`
 2. Revisa los READMEs en `/backend` y `/frontend`
 3. Contacta al desarrollador
-
----
-
-Desarrollado con Claude Code
